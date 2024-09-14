@@ -1,0 +1,28 @@
+# Carpetas de compilación y depuración
+bin/
+obj/
+
+# Archivos generados automáticamente
+*.generated.sin
+
+# Archivos de usuario específicos
+*.csproj.user
+
+# Archivos de respaldo
+*.bak
+
+# Archivos temporales de Visual Studio
+.vs/
+
+# Archivos de caché de NuGet
+*.nuget.props
+*.nuget.targets
+
+# Logs
+*.log
+
+# Archivos de configuración de usuario de Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
