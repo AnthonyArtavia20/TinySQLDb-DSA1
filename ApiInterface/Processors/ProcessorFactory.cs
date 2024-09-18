@@ -10,11 +10,11 @@ namespace ApiInterface.Processors
 {
     internal class ProcessorFactory
     {
-        internal static IProcessor Create(Request request)
+        internal static IProcessor Create(Request request) //quí se procesan las solicitudes
         {
             if (request.RequestType is RequestType.SQLSentence)
             {
-                return new SQLSentenceProcessor(request);
+                return new SQLSentenceProcessor(request); //Se obtiene la información serealizada
             }
             throw new UnknowRequestTypeException();
         }

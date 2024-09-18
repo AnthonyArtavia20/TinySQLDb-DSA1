@@ -1,19 +1,16 @@
 ﻿using Entities;
 using StoreDataManager;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace QueryProcessor.Operations
 {
     internal class Select
     {
-        public OperationStatus Execute()
-        {
-            // This is only doing the query but not returning results.
-            return Store.GetInstance().Select();
+        public (OperationStatus Status, string Data) Execute() //Se modificó este método para que sea capáz
+        {//de poder recibir no solo la respuesta de la creación de la solcitiud,si no tambien la Data
+            //como en el caso del Selectt, que necesita enviar el contenido del archivo binario.
+            var result = Store.GetInstance().Select();
+            return result;
         }
     }
 }

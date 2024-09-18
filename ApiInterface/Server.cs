@@ -1,6 +1,5 @@
 ﻿using System.Net.Sockets;
 using System.Net;
-using System.Text;
 using ApiInterface.InternalModels;
 using System.Text.Json;
 using ApiInterface.Exceptions;
@@ -30,12 +29,12 @@ namespace ApiInterface
                     var rawMessage = GetMessage(handler); //Se obtiene el mensaje enviado por el socket
                     var requestObject = ConvertToRequestObject(rawMessage); //Se dessealiza
                     var response = ProcessRequest(requestObject); //Y luego se procesa y se crea lo solicitado
-                    SendResponse(response, handler); //En el proceso se devulven respuestas, que serán enviadas nuevamente por el socket, hacia en cliente.
+                    SendResponse(response, handler); //La respuesta serealizada es enviada por el socket por medio de este método.
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
-                    await SendErrorResponse("Unknown exception", handler);
+                    await SendErrorResponse("Unknown exception while trying to connect", handler);
                 }
                 finally
                 {
@@ -61,7 +60,8 @@ namespace ApiInterface
         private static Response ProcessRequest(Request requestObject)
         {
             var processor = ProcessorFactory.Create(requestObject);
-            return processor.Process();
+            return processor.Process(); //Se recibe la información serealizada y empaqueda, la cual contiene la
+            //información tanto del estado de respuesta como la información(Data) generada por la consulta
         }
 
         private static void SendResponse(Response response, Socket handler)

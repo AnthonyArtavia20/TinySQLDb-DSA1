@@ -1,23 +1,22 @@
 ﻿using Entities;
 using QueryProcessor.Exceptions;
 using QueryProcessor.Operations;
-using StoreDataManager;
 
 namespace QueryProcessor
 {
     public class SQLQueryProcessor
     {
-        public static OperationStatus Execute(string sentence)
+        public static (OperationStatus Status, string Data) Execute(string sentence)
         {
-            /// The following is example code. Parser should be called
-            /// on the sentence to understand and process what is requested
             if (sentence.StartsWith("CREATE TABLE"))
             {
-                return new CreateTable().Execute();
+                var status = new CreateTable().Execute();
+                return (status, string.Empty);
             }   
             if (sentence.StartsWith("SELECT"))
             {
-                return new Select().Execute();
+                var result = new Select().Execute(); //Se extrae el resultado/Data de la instancia del Select
+                return result;//Y luego se retorna poco a poco camino al ApiInterface.
             }
             else
             {

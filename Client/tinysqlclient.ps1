@@ -88,7 +88,7 @@ function Send-SQLCommand {#Función encargada de poder enviar las consultas y ut
     }
 }
 
-function Execute-MyQuery { #Función principal, donde se leen las consultas y llama a los métodos correctos
+function Start-MyQuery { #Función principal, donde se leen las consultas y llama a los métodos correctos
     #para poder enviar, recibir, y mostrar los resultas de las operaciones.
 
     # Obtener el archivo de consulta en el mismo directorio que el script
@@ -114,7 +114,12 @@ function Execute-MyQuery { #Función principal, donde se leen las consultas y ll
             
             if ($result -and $result.Status -eq 0) {
                 if (-not [string]::IsNullOrWhiteSpace($result.ResponseBody)) {
-                    $result.ResponseBody | ConvertFrom-Json | Format-Table #Aqui forma la respuesta enviadas desde el Server en formato tabla.
+                    $responseData = $result.ResponseBody | ConvertFrom-Json
+                    if ($responseData.Data) {
+                        $responseData.Data -split "`n" | ConvertFrom-Csv | Format-Table
+                    } else {
+                        Write-Host "No se recibieron consultas"
+                    }
                 } else {
                     Write-Host "La consulta se ejecutó correctamente, pero no devolvió resultados."
                 }

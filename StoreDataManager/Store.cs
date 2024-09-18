@@ -52,11 +52,8 @@ namespace StoreDataManager
             using (FileStream stream = File.Open(tablePath, FileMode.OpenOrCreate))
             using (BinaryWriter writer = new (stream))
             {
-                // Create an object with a hardcoded.
-                // First field is an int, second field is a string of size 30,
-                // third is a string of 50
                 int id = 1;
-                string nombre = "Isaac".PadRight(30); // Pad to make the size of the string fixed
+                string nombre = "NombreEjemplo".PadRight(30);
                 string apellido = "Ramirez".PadRight(50);
 
                 writer.Write(id);
@@ -66,39 +63,40 @@ namespace StoreDataManager
             return OperationStatus.Success;
         }
 
-        public OperationStatus Select() //QUEDA PENDIENTE ---> Mejorar la lógica para poder enviar la respuesta por el socket,  ya que esto da la respuesta
-        {       //por la consola del servidor, y no es la idea, debería de ser la del PowerShell, pero como no envia lo creado, nunca lo formatea en formato tabla.
-
+        public (OperationStatus Status, string Data) Select()
+        {
+            //La lógica principal acá es poder leer la información de una tabla, y empaquetarla
+            //para luego retornarla como un resultado, esto camino al Socket para ser enviado al PowerShell
+            //y mostrar el resultado en formato tabla.
             var tablePath = $@"{DataPath}\TESTDB\ESTUDIANTES.Table";
-            DataTable table = new DataTable();
+            StringBuilder resultBuilder = new StringBuilder();
 
-            // Definir las columnas de la tabla
-            table.Columns.Add("Id", typeof(int));
-            table.Columns.Add("Nombre", typeof(string));
-            table.Columns.Add("Apellido", typeof(string));
-
-            using (FileStream stream = File.Open(tablePath, FileMode.OpenOrCreate))
-            using (BinaryReader reader = new BinaryReader(stream))
+            try
             {
-                //Esto es para poder mostrar el resultado y entender como funciona esto.
-                while (stream.Position < stream.Length)
+                using (FileStream stream = File.Open(tablePath, FileMode.Open))
+                using (BinaryReader reader = new BinaryReader(stream))
                 {
-                    int id = reader.ReadInt32();
-                    string nombre = reader.ReadString().Trim();
-                    string apellido = reader.ReadString().Trim();
+                    // Se añade una cabecera donde ese indican los títulos.
+                    resultBuilder.AppendLine("Id,Nombre,Apellido");
 
-                    // Agregar fila a la tabla
-                    table.Rows.Add(id, nombre, apellido);
+                    while (stream.Position < stream.Length)
+                    {
+                        int id = reader.ReadInt32();
+                        string nombre = reader.ReadString().Trim();
+                        string apellido = reader.ReadString().Trim();
+
+                        // Se añaden filas con al información que haya.
+                        resultBuilder.AppendLine($"{id},{nombre},{apellido}");
+                    }
                 }
-            }
 
-            // Mostrar la tabla
-            foreach (DataRow row in table.Rows)
+                return (OperationStatus.Success, resultBuilder.ToString());
+            }
+            catch (Exception ex) //En caso de error al leer los archivos binarios
             {
-                Console.WriteLine($"{row["Id"],-5} {row["Nombre"],-30} {row["Apellido"],-50}");
+                Console.WriteLine($"Error reading file: {ex.Message}");
+                return (OperationStatus.Error, $"Error: {ex.Message}");
             }
-
-            return OperationStatus.Success; // Devolver el enum OperationStatus
         }
     }
 }
