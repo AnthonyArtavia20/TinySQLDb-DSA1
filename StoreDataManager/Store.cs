@@ -9,7 +9,7 @@ namespace StoreDataManager
     {
         private static Store? instance = null;
         private static readonly object _lock = new object();
-               
+
         public static Store GetInstance()
         {
             lock(_lock)
@@ -24,6 +24,7 @@ namespace StoreDataManager
 
         private const string DatabaseBasePath = @"C:\TinySql\";
         private const string DataPath = $@"{DatabaseBasePath}\Data";
+        private string RutaDeterminadaPorSet = $@"{DataPath}\"; //Ruta que cambiará constantemente ya que la determina la operación SET
         private const string SystemCatalogPath = $@"{DataPath}\SystemCatalog";
         private const string SystemDatabasesFile = $@"{SystemCatalogPath}\SystemDatabases.table";
         private const string SystemTablesFile = $@"{SystemCatalogPath}\SystemTables.table";
@@ -34,7 +35,7 @@ namespace StoreDataManager
             
         }
 
-        private void InitializeSystemCatalog()
+        private void InitializeSystemCatalog() //FALTA HACER COSAS AQUÍ
         {
             // Always make sure that the system catalog and above folder
             // exist when initializing
@@ -54,13 +55,15 @@ namespace StoreDataManager
             return OperationStatus.Success;
         }
         
-        public OperationStatus CreateTable()
+        public OperationStatus Set(string DataBaseToSet)
         {
-            // Creates a default DB called TESTDB
-            //Directory.CreateDirectory($@"{DataPath}\TESTDB");
+            RutaDeterminadaPorSet = Path.Combine(RutaDeterminadaPorSet,DataBaseToSet);
+            return OperationStatus.Success;
+        }
 
-            // Creates a default Table called ESTUDIANTES
-            var tablePath = $@"{DataPath}\TESTDB\ESTUDIANTES.Table";
+        public OperationStatus CreateTable(string TableName)
+        {
+            string tablePath = Path.Combine(RutaDeterminadaPorSet, TableName + ".Table");
 
             using (FileStream stream = File.Open(tablePath, FileMode.OpenOrCreate))
             using (BinaryWriter writer = new (stream))
@@ -76,17 +79,18 @@ namespace StoreDataManager
             return OperationStatus.Success;
         }
 
-        public (OperationStatus Status, string Data) Select()
+        public (OperationStatus Status, string Data) Select(string NombreDeTableASeleccionar)
         {
             //La lógica principal acá es poder leer la información de una tabla, y empaquetarla
             //para luego retornarla como un resultado, esto camino al Socket para ser enviado al PowerShell
             //y mostrar el resultado en formato tabla.
-            var tablePath = $@"{DataPath}\Hola\ESTUDIANTES.Table";
-            StringBuilder resultBuilder = new StringBuilder();
+            string tableName = NombreDeTableASeleccionar + ".Table";
+            string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName);
 
+            StringBuilder resultBuilder = new StringBuilder();
             try
             {
-                using (FileStream stream = File.Open(tablePath, FileMode.Open))
+                using (FileStream stream = File.Open(fullPath, FileMode.Open))
                 using (BinaryReader reader = new BinaryReader(stream))
                 {
                     // Se añade una cabecera donde ese indican los títulos.

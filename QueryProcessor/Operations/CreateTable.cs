@@ -5,9 +5,9 @@ namespace QueryProcessor.Operations
 {
     internal class CreateTable
     {
-        internal OperationStatus Execute()
+        internal OperationStatus Execute(string TableName)
         {
-            return Store.GetInstance().CreateTable();
+            return Store.GetInstance().CreateTable(TableName);
         }
     }
 }
