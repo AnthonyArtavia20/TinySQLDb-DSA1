@@ -57,26 +57,50 @@ namespace StoreDataManager
         
         public OperationStatus Set(string DataBaseToSet)
         {
-            RutaDeterminadaPorSet = Path.Combine(RutaDeterminadaPorSet,DataBaseToSet);
+            string databasePath = Path.Combine(DataPath, DataBaseToSet);
+            if (!Directory.Exists(databasePath))
+            {
+                Console.WriteLine($"Error: La base de datos '{DataBaseToSet}' no existe.");
+                return OperationStatus.Error;
+            }
+        
+            RutaDeterminadaPorSet = databasePath;
+            Console.WriteLine($"Base de datos seleccionada: {DataBaseToSet}");
             return OperationStatus.Success;
         }
 
         public OperationStatus CreateTable(string TableName)
         {
-            string tablePath = Path.Combine(RutaDeterminadaPorSet, TableName + ".Table");
-
-            using (FileStream stream = File.Open(tablePath, FileMode.OpenOrCreate))
-            using (BinaryWriter writer = new (stream))
+            if (string.IsNullOrWhiteSpace(RutaDeterminadaPorSet) || RutaDeterminadaPorSet == DataPath + "\\") //Caso de error donde SET no es utilizado
             {
-                int id = 1;
-                string nombre = "NombreEjemplo".PadRight(30);
-                string apellido = "Ramirez".PadRight(50);
-
-                writer.Write(id);
-                writer.Write(nombre);
-                writer.Write(apellido);
+                Console.WriteLine("Error: No se ha seleccionado una base de datos. Use el comando SET primero.");
+                return OperationStatus.Error;
             }
-            return OperationStatus.Success;
+
+            string tablePath = Path.Combine(RutaDeterminadaPorSet, TableName + ".Table"); //Combinamos la BD escogida con ".Table" para poder buscar la tabla.
+
+            try
+            {
+                using (FileStream stream = File.Open(tablePath, FileMode.CreateNew))
+                using (BinaryWriter writer = new(stream))
+                {
+                    //Aquí se cambiará esta lógica, pues debería ingresarse lo que el usario quiera, no algo de forma "static"
+                    int id = 1;
+                    string nombre = "NombreEjemplo".PadRight(30);
+                    string apellido = "Ramirez".PadRight(50);
+
+                    writer.Write(id);
+                    writer.Write(nombre);
+                    writer.Write(apellido);
+                }
+                Console.WriteLine($"Tabla '{TableName}' creada exitosamente en {RutaDeterminadaPorSet}");
+                return OperationStatus.Success;
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Error al crear la tabla: {ex.Message}");
+                return OperationStatus.Error;
+            }
         }
 
         public (OperationStatus Status, string Data) Select(string NombreDeTableASeleccionar)
