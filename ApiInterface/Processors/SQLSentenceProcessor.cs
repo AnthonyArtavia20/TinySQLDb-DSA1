@@ -10,7 +10,7 @@ namespace ApiInterface.Processors
     {
         public Request Request { get; }
 
-        public SQLSentenceProcessor(Request request)
+        public SQLSentenceProcessor(Request request) //Realiza automáticamente el proceso para ejecutar las operaciones tipo SQL
         {
             Request = request;
         }

@@ -27,7 +27,7 @@ namespace ApiInterface
                 {
                     //Aquí se llaman uno a uno los métodos para poder procesar las consultas
                     var rawMessage = GetMessage(handler); //Se obtiene el mensaje enviado por el socket
-                    var requestObject = ConvertToRequestObject(rawMessage); //Se dessealiza
+                    var requestObject = ConvertToRequestObject(rawMessage); //Se dessealiza (PARSEA)
                     var response = ProcessRequest(requestObject); //Y luego se procesa y se crea lo solicitado
                     SendResponse(response, handler); //La respuesta serealizada es enviada por el socket por medio de este método.
                 }

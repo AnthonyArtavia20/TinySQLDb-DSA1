@@ -132,4 +132,4 @@ function Start-MyQuery { #Función principal, donde se leen las consultas y llam
 }
 
 # Llamar a la función para ejecutar las consultas
-Execute-MyQuery
+Start-MyQuery

@@ -14,7 +14,7 @@ namespace ApiInterface.Processors
         {
             if (request.RequestType is RequestType.SQLSentence)
             {
-                return new SQLSentenceProcessor(request); //Se obtiene la información serealizada
+                return new SQLSentenceProcessor(request); //Se obtiene la información serealizada para ser procesada
             }
             throw new UnknowRequestTypeException();
         }

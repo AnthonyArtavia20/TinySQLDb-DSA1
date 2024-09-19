@@ -41,10 +41,23 @@ namespace StoreDataManager
             Directory.CreateDirectory(SystemCatalogPath);
         }
 
+        public OperationStatus CreateDataBase(string databaseName)
+        {
+            if (string.IsNullOrWhiteSpace(databaseName)) //Verificación de errores(Que no sea una oración vacía)
+            {
+                return OperationStatus.Error;
+            }
+        
+            string databasePath = Path.Combine(DataPath, databaseName); //Sirve para poder combinar toda la ruta
+            //y no tener que escribirla por defecto.
+            Directory.CreateDirectory(databasePath); //Creamos un directorio con el nombre que se pasó como parámetro.
+            return OperationStatus.Success;
+        }
+        
         public OperationStatus CreateTable()
         {
             // Creates a default DB called TESTDB
-            Directory.CreateDirectory($@"{DataPath}\TESTDB");
+            //Directory.CreateDirectory($@"{DataPath}\TESTDB");
 
             // Creates a default Table called ESTUDIANTES
             var tablePath = $@"{DataPath}\TESTDB\ESTUDIANTES.Table";
@@ -68,7 +81,7 @@ namespace StoreDataManager
             //La lógica principal acá es poder leer la información de una tabla, y empaquetarla
             //para luego retornarla como un resultado, esto camino al Socket para ser enviado al PowerShell
             //y mostrar el resultado en formato tabla.
-            var tablePath = $@"{DataPath}\TESTDB\ESTUDIANTES.Table";
+            var tablePath = $@"{DataPath}\Hola\ESTUDIANTES.Table";
             StringBuilder resultBuilder = new StringBuilder();
 
             try
