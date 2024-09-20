@@ -69,37 +69,74 @@ namespace StoreDataManager
             return OperationStatus.Success;
         }
 
-        public OperationStatus CreateTable(string TableName)
+        public OperationStatus CreateTable(string tableName, List<ColumnDefinition> columns)
         {
-            if (string.IsNullOrWhiteSpace(RutaDeterminadaPorSet) || RutaDeterminadaPorSet == DataPath + "\\") //Caso de error donde SET no es utilizado
+            if (string.IsNullOrWhiteSpace(RutaDeterminadaPorSet) || RutaDeterminadaPorSet == DataPath + "\\")
             {
                 Console.WriteLine("Error: No se ha seleccionado una base de datos. Use el comando SET primero.");
                 return OperationStatus.Error;
             }
 
-            string tablePath = Path.Combine(RutaDeterminadaPorSet, TableName + ".Table"); //Combinamos la BD escogida con ".Table" para poder buscar la tabla.
+            string tablePath = Path.Combine(RutaDeterminadaPorSet, tableName + ".Table");
 
             try
             {
                 using (FileStream stream = File.Open(tablePath, FileMode.CreateNew))
-                using (BinaryWriter writer = new(stream))
+                using (BinaryWriter writer = new BinaryWriter(stream))
                 {
-                    //Aquí se cambiará esta lógica, pues debería ingresarse lo que el usario quiera, no algo de forma "static"
-                    int id = 1;
-                    string nombre = "NombreEjemplo".PadRight(30);
-                    string apellido = "Ramirez".PadRight(50);
+                    // Escribir el número de columnas
+                    writer.Write(columns.Count);
 
-                    writer.Write(id);
-                    writer.Write(nombre);
-                    writer.Write(apellido);
+                    // Escribir las definiciones de columnas en orden por medio de un loop que pase por toda la lista que contiene los datos a escribir
+                    foreach (var column in columns)
+                    {
+                        writer.Write(column.Name.PadRight(30));
+                        writer.Write(column.DataType.PadRight(20));
+                        writer.Write(column.IsNullable);
+                        writer.Write(column.IsPrimaryKey);
+                        if (column.DataType.StartsWith("VARCHAR"))
+                        {
+                            writer.Write(column.VarcharLength ?? 0);
+                        }
+                    }
                 }
-                Console.WriteLine($"Tabla '{TableName}' creada exitosamente en {RutaDeterminadaPorSet}");
+
+                UpdateSystemCatalog(tableName, columns); //Se actualiza el catálogo con las nuevas tablas y su contenido.
+
+                Console.WriteLine($"Tabla '{tableName}' creada exitosamente en {RutaDeterminadaPorSet}");
                 return OperationStatus.Success;
             }
             catch (IOException ex)
             {
                 Console.WriteLine($"Error al crear la tabla: {ex.Message}");
                 return OperationStatus.Error;
+            }
+        }
+
+        private void UpdateSystemCatalog(string tableName, List<ColumnDefinition> columns) //Encargado de actualizar la carpeta que conteien toda la información de las base de datos
+        {
+            // Actualizar SystemTables
+            using (FileStream stream = File.Open(SystemTablesFile, FileMode.Append))
+            using (BinaryWriter writer = new BinaryWriter(stream))
+            {
+                writer.Write(RutaDeterminadaPorSet.PadRight(100)); // Ruta de la base de datos (fijo 100 caracteres)
+                writer.Write(tableName.PadRight(30)); // Nombre de la tabla (fijo 30 caracteres)
+            }
+
+            // Actualizar SystemColumns
+            string systemColumnsFile = Path.Combine(SystemCatalogPath, "SystemColumns.table");
+            using (FileStream stream = File.Open(systemColumnsFile, FileMode.Append))
+            using (BinaryWriter writer = new BinaryWriter(stream))
+            {
+                foreach (var column in columns)
+                {
+                    writer.Write(tableName.PadRight(30)); // Nombre de la tabla (fijo 30 caracteres)
+                    writer.Write(column.Name.PadRight(30)); // Nombre de la columna (fijo 30 caracteres)
+                    writer.Write(column.DataType.PadRight(20)); // Tipo de dato (fijo 20 caracteres)
+                    writer.Write(column.IsNullable);
+                    writer.Write(column.IsPrimaryKey);
+                    writer.Write(column.VarcharLength ?? 0);
+                }
             }
         }
 
