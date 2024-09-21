@@ -7,4 +7,5 @@ CREATE TABLE Empleados (
     FechaContratacion DATETIME,
     Salario DOUBLE
 );
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Anthony', 'Artavia', '2022-03-31 12:23:43', 5000.00);
 SELECT * FROM Empleados;

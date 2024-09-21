@@ -115,13 +115,20 @@ function Start-MyQuery { #Función principal, donde se leen las consultas y llam
             if ($result -and $result.Status -eq 0) {
                 if (-not [string]::IsNullOrWhiteSpace($result.ResponseBody)) {
                     $responseData = $result.ResponseBody | ConvertFrom-Json
-                    if ($responseData.Data) {
-                        $responseData.Data -split "`n" | ConvertFrom-Csv | Format-Table
+                    if ($responseData.Data -eq "La tabla está vacía.") {
+                        Write-Host $responseData.Data
+                    } elseif ($responseData.Data) {
+                        $tableData = $responseData.Data -replace '\\r\\n',"`n" | ConvertFrom-Csv #Se añadió esto para poder convertir de Csv que es el formato en que viene la información de la creación de las tablas.
+                        if ($tableData) {
+                            $tableData | Format-Table
+                        } else {
+                            Write-Host "La tabla está vacía (solo contiene encabezados)."
+                        }
                     } else {
-                        Write-Host "No se recibieron consultas"
+                        Write-Host "La consulta se ejecutó correctamente, pero no devolvió resultados."
                     }
                 } else {
-                    Write-Host "La consulta se ejecutó correctamente, pero no devolvió resultados."
+                    Write-Host "La consulta se ejecutó correctamente, pero la respuesta está vacía."
                 }
             } else {
                 Write-Host -ForegroundColor Red "Error al ejecutar la consulta: $($result.ResponseBody)"

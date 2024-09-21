@@ -17,7 +17,7 @@ namespace ApiInterface.Processors
 
         public Response Process()
         {
-            var sentence = this.Request.RequestBody;
+            var sentence = this.Request.RequestBody.Trim(); //Se añade ".Trim" para evitar que la respuesta lleve espacios.
             var (status, data) = SQLQueryProcessor.Execute(sentence); //Se recibe la información enviada desde 
             // el StoredDataManager
             return this.ConvertToResponse(status, data); //Finalmente se retorna Serealizado como tipo Data,
