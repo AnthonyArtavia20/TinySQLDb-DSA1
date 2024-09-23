@@ -1,11 +1,2 @@
-CREATE DATABASE UNIVERSIDAD;
-SET UNIVERSIDAD;
-CREATE TABLE Empleados (
-    ID INTEGER NOT NULL PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    FechaContratacion DATETIME,
-    Salario DOUBLE
-);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Anthony', 'Artavia', '2022-03-31 12:23:43', 5000.00);
-SELECT * FROM Empleados;
+SET TEC;
+DROP TABLE Empleados;

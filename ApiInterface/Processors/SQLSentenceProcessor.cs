@@ -14,7 +14,6 @@ namespace ApiInterface.Processors
         {
             Request = request;
         }
-
         public Response Process()
         {
             var sentence = this.Request.RequestBody.Trim(); //Se añade ".Trim" para evitar que la respuesta lleve espacios.
