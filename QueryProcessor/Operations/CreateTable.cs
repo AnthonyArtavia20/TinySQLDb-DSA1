@@ -1,7 +1,6 @@
 ﻿using Entities;
 using StoreDataManager;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
 
 namespace QueryProcessor.Operations
 {
@@ -9,24 +8,26 @@ namespace QueryProcessor.Operations
     {
         internal OperationStatus Execute(string createTableStatement)
         {
-            //Ahora también podemos recibir las propiedades a solicitadas para crear las tablas
-            var (tableName, columns) = ParseCreateTableStatement(createTableStatement);
-            return Store.GetInstance().CreateTable(tableName, columns);
+            var (tableName, columns) = ParseCreateTableStatement(createTableStatement); //Pasamos la operación completa y la Parseamos para 
+            //poder obtener las columnas que se enviaron con todo y mensaje.
+            return Store.GetInstance().CreateTable(tableName, columns); //Luego enviamos el nombre de la tabla y las columnas incluidas
+            //a Store.cs para poder procesarlas.
         }
 
-        private (string tableName, List<ColumnDefinition> columns) ParseCreateTableStatement(string statement)
-        {
-            var tableNameMatch = Regex.Match(statement, @"CREATE TABLE (\w+)");
-            if (!tableNameMatch.Success)
-            {
-                throw new ArgumentException("Mal formato CREATE TABLE, ingresa corectamente los datos: Usar(Integer, Varchar(especificar el tamaño), DATETIME, y DOUBLE)");
-            }
-            string tableName = tableNameMatch.Groups[1].Value;
+        private (string tableName, List<ColumnDefinition> columns) ParseCreateTableStatement(string statement) //Ayuda a separar de toda la 
+        {//operación solo las columnas y el nombre de la tabla a crear.
 
-            var columnDefinitions = new List<ColumnDefinition>();
+            var tableNameMatch = Regex.Match(statement, @"CREATE TABLE (\w+)"); //Como empieza la operación.
+            if (!tableNameMatch.Success) //En el caso de que no se escriba correctamente el comando
+            {
+                throw new ArgumentException("Mal formato CREATE TABLE, escriba bien CREATE TABLE y/o, ingresa corectamente los datos: Usar(Integer, Varchar(especificar el tamaño), DATETIME, y DOUBLE)");
+            }
+            string tableName = tableNameMatch.Groups[1].Value; //Si calzó el comando, obtenemos el nombre de la tabla.
+
+            var columnDefinitions = new List<ColumnDefinition>(); //Creamos una lista donde almacenar las columnas.
             var columnMatches = Regex.Matches(statement, @"(\w+)\s+(INTEGER|DOUBLE|VARCHAR\(\d+\)|DATETIME)(?:\s+(NOT NULL))?(?:\s+(PRIMARY KEY))?"); //Como debería de ser la entrada.
             
-            foreach (Match match in columnMatches)
+            foreach (Match match in columnMatches) //Vamos buscando cuales calzan con los valores esperados.
             {
                 //Comenzamos a guardar los valores ingresados.
                 string columnName = match.Groups[1].Value;
@@ -40,7 +41,7 @@ namespace QueryProcessor.Operations
                     varcharLength = int.Parse(Regex.Match(dataType, @"\d+").Value);
                 }
 
-                columnDefinitions.Add(new ColumnDefinition
+                columnDefinitions.Add(new ColumnDefinition //Guardamos la estructura a crear de la tabla.
                 {
                     Name = columnName,
                     DataType = dataType,
@@ -50,7 +51,7 @@ namespace QueryProcessor.Operations
                 });
             }
 
-            return (tableName, columnDefinitions);
+            return (tableName, columnDefinitions); //Retornamos tanto el nombre de la tabla como sus columnas separadas y parseadas.
         }
     }
 }

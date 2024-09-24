@@ -10,57 +10,115 @@ namespace QueryProcessor.Operations
     {
         public OperationStatus Execute(string sentence)
         {
-            var estructuraEsperada = Regex.Match(sentence, @"INSERT INTO (\w+) \((.*?)\) VALUES \((.*?)\)"); //Forma esperada de la operación
-            if (!estructuraEsperada.Success) //Si la forma no es la esperada, entonces se rechaza.
+            var estructuraEsperada = Regex.Match(sentence, @"INSERT INTO (\w+) \((.*?)\) VALUES \((.*?)\)");// Estructura esperada de la sentencia INSERT INTO
+            if (!estructuraEsperada.Success) //En caso de que no se haya escrito bien el nombre del comando.
             {
-                throw new InvalidOperationException("Formato de INSERT inválido");
+                throw new InvalidOperationException("Formato de INSERT inválido, escriba bien INSERT INTO");
             }
-
-            //Definimos que serán los datos ingresantes, tales serán como nombre de la tabla, columnas y valores.
-            string tableName = estructuraEsperada.Groups[1].Value;
-            string[] columnas = estructuraEsperada.Groups[2].Value.Split(',').Select(c => c.Trim()).ToArray(); //Para ambas operaciones les quitamos las comas
-            string[] valores = estructuraEsperada.Groups[3].Value.Split(',').Select(v => v.Trim()).ToArray();//y los espacios en blanco, además los convertimos en array para poder almacenar varios datos.
-
-            if (columnas.Length != valores.Length)
+        
+            string tableName = estructuraEsperada.Groups[1].Value; //Almacenamos el nombre de la tabla.
+            string[] columnas = estructuraEsperada.Groups[2].Value.Split(',').Select(c => c.Trim()).ToArray(); //Almacenamos las columnas
+            string[] valores = estructuraEsperada.Groups[3].Value.Split(',').Select(v => v.Trim()).ToArray(); //Almacenamos los valores de dichas columnas.
+        
+            if (columnas.Length != valores.Length) //Si se metió un valor de más.
             {
                 throw new InvalidOperationException("El número de columnas no coincide con el número de valores");
             }
+        
+            // Obtiene el ID de la tabla desde SystemTables, esto para poder saber en que Tabla insertar.
+            int tableId = Store.GetInstance().GetTableId(tableName);
 
-            /*En el requerimiento 010 se pide lo siguiente: "Las columnas DateTime se especifican en String 
-            pero internamente se parsean a DateTime"
-            Por lo tanto lo siguiente convierte las strings de tipo DateTime a ticks:*/
+            Console.WriteLine($"Obtenido tableId: {tableId} para la tabla {tableName}"); //Debug
+            if (tableId == -1)
+            {
+                throw new InvalidOperationException($"La tabla '{tableName}' no existe.");
+            }
+        
+            // Obtiene el esquema de la tabla desde SystemColumns usando el ID de la tabla
+            var tableSchema = Store.GetInstance().GetTableSchema(tableId); //Esto para poder validar los datos ingresantes y el esquema guardado en SystemCatalog al momento de crear la tabla.
+        
+            //Debug: Ver el esquema guardado:
+            Console.WriteLine("Esquema de la tabla obtenido:");
+            foreach (var column in tableSchema)
+            {
+                Console.WriteLine($"Nombre: {column.Name}, Tipo: {column.DataType}");
+            }
+        
+            // Validación de tipos de datos y parseo
             for (int i = 0; i < columnas.Length; i++)
             {
-                valores[i] = valores[i].Trim('\'', '"'); // Le quitamos las comillas a los datos para que no estorben a la hora de procesarlos.
+                var columna = tableSchema.FirstOrDefault(col => col.Name == columnas[i]);
+                
+                if (columna == null)
+                {
+                    Console.WriteLine($"Error: La columna '{columnas[i]}' no existe en la tabla '{tableName}'");
+                    throw new InvalidOperationException($"La columna '{columnas[i]}' no existe en la tabla '{tableName}'");
+                }
+        
+                valores[i] = ParseAndValidateValue(columna, valores[i]).ToString();
+            }
+        
+            // Llama a Store para insertar los datos
+            return Store.GetInstance().InsertIntoTable(tableName, columnas, valores);
+        }
 
-                //Dividimos los datos entrantes en tipo "Fecha/date" y los procesamos aqi+i
-                if (columnas[i].ToLower().Contains("fecha") || columnas[i].ToLower().Contains("date"))
+        private object ParseAndValidateValue(ColumnDefinition columna, string value) //Permite validar y parsear las filas a insertar.
+        {
+            //Checkear para tipo VARCHAR con una longtid en específico.
+            value = value.Trim();
+            if (columna.DataType.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase))
+            {
+                // Extract the length from VARCHAR(X)
+                var match = Regex.Match(columna.DataType, @"VARCHAR\((\d+)\)");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int maxLength))
                 {
-                    string format = "yyyy-MM-dd HH:mm:ss"; //Formato esperado determinado por las instrucciones.
-                    Console.WriteLine($"Intentando convertir: {valores[i]} en el formato {format}"); //Esto es para debug, daba problemas y no sabía que era :/
-                    if (DateTime.TryParseExact(valores[i], format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+                    //Acá se verifica que el valor no sea más grande que el largo de las columnas.
+                    if (value.Length > maxLength)
                     {
-                        valores[i] = date.Ticks.ToString(); //Incertamos en la columna esperada que es en la posición que se indicó en la operación pues es la longitud de la lista de columnas.
+                        throw new InvalidOperationException($"El valor para la columna '{columna.Name}' excede la longitud máxima de {maxLength} caracteres.");
                     }
-                    else
-                    {
-                        throw new InvalidOperationException($"Formato de fecha inválido: {valores[i]}");
-                    }
-                }//En el caso que el tipo de dato sea "salario" lo procesamos aquí:
-                else if (columnas[i].ToLower().Contains("salario") || columnas[i].ToLower() == "double")
+        
+                    //Retornamos el valor ya que si es válido para VARCHAR
+                    return value;
+                }
+                else
                 {
-                    if (double.TryParse(valores[i], NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
-                    {
-                        valores[i] = result.ToString(CultureInfo.InvariantCulture); //Igual, se añade como string a la columna de valores en el lugar provisto por su posición en la lista.
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Formato de número inválido: {valores[i]}");
-                    }
+                    throw new InvalidOperationException($"Tipo de dato no soportado: {columna.DataType}");
                 }
             }
+        
+            // Revisamos el resto de tipos (INTEGER, DOUBLE, DATETIME)
+            switch (columna.DataType.ToUpper())
+            {
+                case "INTEGER":
+                    if (int.TryParse(value, out int intValue))
+                        return intValue;
+                    throw new InvalidOperationException($"El valor '{value}' para la columna '{columna.Name}' no es un entero válido.");
+        
+                case "DOUBLE":
+                    if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out double doubleValue))
+                        return doubleValue;
+                    throw new InvalidOperationException($"El valor '{value}' para la columna '{columna.Name}' no es un número decimal válido.");
+        
+                case "DATETIME":
+                {
+                    string format = "yyyy-MM-dd HH:mm:ss";
 
-            return Store.GetInstance().InsertIntoTable(tableName, columnas, valores); //Se retorna la tabla con los valores ordenados y parseados.
+                    // Con esto se eliminas las comillas simples que llevan los datos al momento de la instrucción.
+                    value = value.Trim('\'');
+
+                    // Parseamos la fecha.
+                    if (DateTime.TryParseExact(value, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+                    {
+                        return date.Ticks; //Se retorna la fecha como ticks (long)
+                    }
+                    throw new InvalidOperationException($"Formato de fecha inválido: {value}");
+                }
+
+                default:
+                    throw new InvalidOperationException($"Tipo de dato no soportado: {columna.DataType}");
+            }
         }
+
     }
 }

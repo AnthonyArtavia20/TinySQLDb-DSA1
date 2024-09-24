@@ -8,10 +8,10 @@ using ApiInterface.Models;
 
 namespace ApiInterface
 {
-    public class Server
+    public class Server //Lógica para poder iniciar el Servidor cuando se ejecuta "dotnet run" conecta los Sockets.
     {
-        private static IPEndPoint serverEndPoint = new(IPAddress.Any, 11000);
-        private static int supportedParallelConnections = 1;
+        private static IPEndPoint serverEndPoint = new(IPAddress.Any, 11000); //Puerto estático, pero puede ser Dinámico.
+        private static int supportedParallelConnections = 1; //Solo una conexión a la vez.
 
         public static async Task Start()
         {
@@ -43,7 +43,7 @@ namespace ApiInterface
             }
         }
 
-        private static string GetMessage(Socket handler)
+        private static string GetMessage(Socket handler) //Permite extraer el mensaje enviado desde el cliente.
         {
             using (NetworkStream stream = new NetworkStream(handler))
             using (StreamReader reader = new StreamReader(stream))
@@ -52,20 +52,21 @@ namespace ApiInterface
             }
         }
 
-        private static Request ConvertToRequestObject(string rawMessage)
+        private static Request ConvertToRequestObject(string rawMessage) //Luego se deserializa el mensaje para poder ser procesado.
         {
             return JsonSerializer.Deserialize<Request>(rawMessage) ?? throw new InvalidRequestException();
         }
 
-        private static Response ProcessRequest(Request requestObject)
-        {
+        private static Response ProcessRequest(Request requestObject) //Se ingresa la solicitud para poder compararla en el ProcessorFactory
+        {//esto para luego determinar que clase de operación es.
+
             var processor = ProcessorFactory.Create(requestObject);
             return processor.Process(); //Se recibe la información serealizada y empaqueda, la cual contiene la
             //información tanto del estado de respuesta como la información(Data) generada por la consulta
         }
 
-        private static void SendResponse(Response response, Socket handler)
-        {
+        private static void SendResponse(Response response, Socket handler) //Una vez que se procesó la solicitud, la serealizamos para poder enviarla
+        {// por el socket.
             using (NetworkStream stream = new NetworkStream(handler))
             using (StreamWriter writer = new StreamWriter(stream))
             {
@@ -73,7 +74,7 @@ namespace ApiInterface
             }
         }
 
-        private static Task SendErrorResponse(string reason, Socket handler)
+        private static Task SendErrorResponse(string reason, Socket handler) //En caso de error, se utiliza este método para poder avisar.
         {
             throw new NotImplementedException();
         }

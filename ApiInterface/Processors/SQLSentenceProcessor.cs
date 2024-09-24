@@ -6,8 +6,8 @@ using System.Text.Json;
 
 namespace ApiInterface.Processors
 {
-    internal class SQLSentenceProcessor : IProcessor 
-    {
+    internal class SQLSentenceProcessor : IProcessor //Permite dirigir los tipos de consultas a diferentes procesadores.
+    {//en este caso permite dirigir las solicitudes SQLSentence al SQLQueryProcessor.
         public Request Request { get; }
 
         public SQLSentenceProcessor(Request request) //Realiza automáticamente el proceso para ejecutar las operaciones tipo SQL
@@ -24,8 +24,8 @@ namespace ApiInterface.Processors
             //para que pueda ser enviado por el Socket
         }
 
-        private Response ConvertToResponse(OperationStatus status, string data)
-        {
+        private Response ConvertToResponse(OperationStatus status, string data) //Cuando ya se procesó la solicitud, la procesamos 
+        {//para poder pasarla como respuesta atravez del socket.
             var response = new Response
             {
                 Status = status,

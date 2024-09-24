@@ -1,11 +1,11 @@
-CREATE DATABASE UNIVERSIDAD;
-SET UNIVERSIDAD;
-CREATE TABLE Empleados (
+CREATE DATABASE Comidas;
+SET Comidas;
+CREATE TABLE Comidas (
     ID INTEGER NOT NULL PRIMARY KEY,
     Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    FechaContratacion DATETIME,
-    Salario DOUBLE
+    IngredienteEspecial VARCHAR(50) NOT NULL,
+    Fechadeexpidacion DATETIME,
+    Precio DOUBLE
 );
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Anthony', 'Artavia', '2022-03-31 12:23:43', 5000.00);
-SELECT * FROM Empleados;
+INSERT INTO Comidas (ID, Nombre, IngredienteEspecial, Fechadeexpidacion, Precio) VALUES (1, 'Pollo', 'Romero', '2022-03-31 12:23:43', 5000.00);
+SELECT * FROM Comidas;
