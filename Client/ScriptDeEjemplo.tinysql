@@ -9,3 +9,27 @@ CREATE TABLE Comidas (
 );
 INSERT INTO Comidas (ID, Nombre, IngredienteEspecial, Fechadeexpidacion, Precio) VALUES (1, 'Pollo', 'Romero', '2022-03-31 12:23:43', 5000.00);
 SELECT * FROM Comidas;
+
+CREATE DATABASE UNIVERSIDAD;
+SET UNIVERSIDAD;
+CREATE TABLE Estudiantes (
+    ID INTEGER NOT NULL PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    Apellido VARCHAR(50) NOT NULL,
+    FechaContratacion DATETIME,
+    Salario DOUBLE
+);
+INSERT INTO Estudiantes (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Joseph', 'Piedra', '2022-03-31 12:23:43', 2308.00);
+SELECT * FROM Estudiantes;
+
+
+CREATE TABLE Empleados (
+    ID INTEGER NOT NULL PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    IngredienteEspecial VARCHAR(50) NOT NULL,
+    Fechadeexpidacion DATETIME,
+    Precio DOUBLE
+);
+
+DROP TABLE Empleados;
+

@@ -58,6 +58,18 @@ namespace QueryProcessor
 
                 var result = new CreateDataBase().Execute(databaseName); //Pasamos dicho nombre.
                 return (result, string.Empty);
+            }
+            // Implementacion del DROP TABLE 
+            if (sentence.StartsWith("DROP TABLE"))
+            {
+                const string dropDatabaseKeyword = "DROP TABLE";
+                var tableName = sentence.Substring(dropDatabaseKeyword.Length).Trim(); //De igual forma substraemos el nombre de la base de datos a crear.
+                if (string.IsNullOrWhiteSpace(tableName)) 
+                { 
+                    throw new InvalidOperationException("Debe ingresar un nombre para la base de datos, especifíquelo en el archivo de texto");
+                }
+                var result = new DropTable().Execute(tableName); //Pasamos dicho nombre.
+                return (result, string.Empty);
             } 
             else
             {
