@@ -543,5 +543,29 @@ namespace StoreDataManager
             
             return columns;
         }
+        // Implementacion del DropTable 
+        public OperationStatus DropTable(string tableName)
+        {
+            string tablePath = Path.Combine(RutaDeterminadaPorSet,tableName+".Table");
+            if (!File.Exists(tablePath)) 
+            {
+                Console.WriteLine($"tabla'{tableName}'no existe,");
+                return OperationStatus.Error;
+            }
+            else
+            {
+                try 
+                {
+                    File.Delete(tablePath);
+                    Console.WriteLine($"La tabla'{tableName}' se ha eliminado correctamnete.");
+                    return OperationStatus.Success;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error al eliminar la tabla:{ex.Message}");
+                    return OperationStatus.Error;
+                }
+            }
+        }  
     }
 }
