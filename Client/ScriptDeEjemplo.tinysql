@@ -1,5 +1,5 @@
-CREATE DATABASE Comidas;
-SET Comidas;
+CREATE DATABASE Restaurante;
+SET Restaurante;
 CREATE TABLE Comidas (
     ID INTEGER NOT NULL PRIMARY KEY,
     Nombre VARCHAR(50) NOT NULL,
@@ -12,18 +12,18 @@ SELECT * FROM Comidas;
 
 CREATE DATABASE UNIVERSIDAD;
 SET UNIVERSIDAD;
-CREATE TABLE Estudiantes (
+CREATE TABLE Empleados (
     ID INTEGER NOT NULL PRIMARY KEY,
     Nombre VARCHAR(50) NOT NULL,
     Apellido VARCHAR(50) NOT NULL,
     FechaContratacion DATETIME,
     Salario DOUBLE
 );
-INSERT INTO Estudiantes (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Joseph', 'Piedra', '2022-03-31 12:23:43', 2308.00);
-SELECT * FROM Estudiantes;
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Joseph', 'Piedra', '2022-03-31 12:23:43', 2308.00);
+SELECT * FROM Empleados;
 
 
-CREATE TABLE Empleados (
+CREATE TABLE Estudiantes (
     ID INTEGER NOT NULL PRIMARY KEY,
     Nombre VARCHAR(50) NOT NULL,
     IngredienteEspecial VARCHAR(50) NOT NULL,
@@ -31,5 +31,4 @@ CREATE TABLE Empleados (
     Precio DOUBLE
 );
 
-DROP TABLE Empleados;
-
+DROP TABLE Estudiantes;

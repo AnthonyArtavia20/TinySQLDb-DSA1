@@ -109,6 +109,11 @@ namespace StoreDataManager
             return databases.Max(db => db.Id) + 1; //Si existen bases de datos nos vamos a la última, obtenemos su ID y luego se le suma +1, y ese será el nuevo ID.
         }
 
+        private int? GetDatabaseId(string databaseName) { //Igual que las tablas lo que hace es recorrer todo el archivo binario para luego compararlo.
+            var databases = ReadFromSystemDatabases();
+            var database = databases.FirstOrDefault(db => db.Name == databaseName); //Nos devuelve el primer elemento en esa lista, es decir el ID donde el nombre sea igual al nombre de la BD que se le pasó como parámetro.
+            return database != default ? database.Id : (int?)null;
+        }
         private void AddDatabaseToCatalog(int id, string databaseName) { //Este métdo se encarga de ingresar al archivo binario dentro de SystemCatalog encargado de llevar el recuento de cuales bases de datos existen.
             string systemDatabasesFilePath = Path.Combine(SystemCatalogPath, "SystemDatabases.databases"); //Preparamos la ruta hacía el archivo.
 
@@ -139,13 +144,6 @@ namespace StoreDataManager
             Console.WriteLine($"Base de datos seleccionada: {DataBaseToSet}");
             return OperationStatus.Success;
         }
-
-        private int? GetDatabaseId(string databaseName) { //Igual que las tablas lo que hace es recorrer todo el archivo binario para luego compararlo.
-            var databases = ReadFromSystemDatabases();
-            var database = databases.FirstOrDefault(db => db.Name == databaseName); //Nos devuelve el primer elemento en esa lista, es decir el ID donde el nombre sea igual al nombre de la BD que se le pasó como parámetro.
-            return database != default ? database.Id : (int?)null;
-        }
-
 
         public OperationStatus CreateTable(string tableName, List<ColumnDefinition> columns) //Operación para poder crear tablas vacías pero con encabezados a los cuales agregarles datos.
         {
@@ -217,6 +215,36 @@ namespace StoreDataManager
             }
         }
 
+        private void AddColumnsToCatalog(int tableId, List<ColumnDefinition> columns) //Método encargado de añadir las columnas a un documento dentro de SystemCatalog.
+        {
+            string systemColumnsFilePath = Path.Combine(SystemCatalogPath, "SystemColumns.columns"); //Obtenemos la ruta hacía el documento que contendrá las columnas.
+
+            //Anteriormente hubo un error aquí, y es que en lugar de agregar al archivo con Append, se sobre escribia, entonces solo se añadía una tanda de columnas.
+            using (var writer = new BinaryWriter(File.Open(systemColumnsFilePath, FileMode.Append)))
+            {
+                foreach (var column in columns) //Se encarga de iterar sobre cada elemento en la lista de columnas que fué parseada en la clase CreateTables en Operations dentro de QueryProcessor
+                { //Esto con el objetvo de actualizar el archivo de columnas en SystemCatalog.
+                
+                    if (string.IsNullOrWhiteSpace(column.Name) || string.IsNullOrWhiteSpace(column.DataType)) //Comprobación de errores.
+                    {
+                        throw new InvalidOperationException("El nombre de la columna o el tipo de dato no pueden ser nulos o vacíos.");
+                    }
+
+                    Console.WriteLine($"Guardando columna: {column.Name} con tipo {column.DataType} en SystemColumns.columns para la tabla con ID {tableId}"); //Debug
+                    writer.Write(tableId);            // Escribimos el ID de la tabla
+                    writer.Write(column.Name);        // Escribimos el nombre de la columna
+                    writer.Write(column.DataType);    // Escribimos el tipo de dato de la columna
+                    writer.Write(column.IsNullable);  // Escribimos si es nullable
+
+                    // Mensaje de depuración para verificar si el atributo IsPrimaryKey se guarda correctamente
+                    Console.WriteLine($"Guardando columna: {column.Name} con tipo {column.DataType} y PrimaryKey={column.IsPrimaryKey} en SystemColumns.columns para la tabla con ID {tableId}");
+
+                    writer.Write(column.IsPrimaryKey);// Escribimos si es llave primaria
+                    writer.Write(column.VarcharLength ?? 0); // Escribimos la longitud si es VARCHAR, por defecto 0
+                }
+            }
+        }
+
         private bool TableExists(string tableName) { //Al igual que el método de las Bases crea una lista con todos las BDs existentes para luego comparar el nombre.
             var tables = ReadFromSystemTables(); //Aquí se almacena la lista generada por el método que crea las BDs
             return tables.Any(tbl => tbl.TableName == tableName); //Si la comparación encuentra una Tabla con el mismo nombre 
@@ -265,36 +293,6 @@ namespace StoreDataManager
                 writer.Write(dbId);        // ID de la base de datos
                 writer.Write(tableId);     // ID de la tabla
                 writer.Write(tableName);   // Nombre de la tabla
-            }
-        }
-
-        private void AddColumnsToCatalog(int tableId, List<ColumnDefinition> columns) //Método encargado de añadir las columnas a un documento dentro de SystemCatalog.
-        {
-            string systemColumnsFilePath = Path.Combine(SystemCatalogPath, "SystemColumns.columns"); //Obtenemos la ruta hacía el documento que contendrá las columnas.
-
-            //Anteriormente hubo un error aquí, y es que en lugar de agregar al archivo con Append, se sobre escribia, entonces solo se añadía una tanda de columnas.
-            using (var writer = new BinaryWriter(File.Open(systemColumnsFilePath, FileMode.Append)))
-            {
-                foreach (var column in columns) //Se encarga de iterar sobre cada elemento en la lista de columnas que fué parseada en la clase CreateTables en Operations dentro de QueryProcessor
-                { //Esto con el objetvo de actualizar el archivo de columnas en SystemCatalog.
-                
-                    if (string.IsNullOrWhiteSpace(column.Name) || string.IsNullOrWhiteSpace(column.DataType)) //Comprobación de errores.
-                    {
-                        throw new InvalidOperationException("El nombre de la columna o el tipo de dato no pueden ser nulos o vacíos.");
-                    }
-
-                    Console.WriteLine($"Guardando columna: {column.Name} con tipo {column.DataType} en SystemColumns.columns para la tabla con ID {tableId}"); //Debug
-                    writer.Write(tableId);            // Escribimos el ID de la tabla
-                    writer.Write(column.Name);        // Escribimos el nombre de la columna
-                    writer.Write(column.DataType);    // Escribimos el tipo de dato de la columna
-                    writer.Write(column.IsNullable);  // Escribimos si es nullable
-
-                    // Mensaje de depuración para verificar si el atributo IsPrimaryKey se guarda correctamente
-                    Console.WriteLine($"Guardando columna: {column.Name} con tipo {column.DataType} y PrimaryKey={column.IsPrimaryKey} en SystemColumns.columns para la tabla con ID {tableId}");
-
-                    writer.Write(column.IsPrimaryKey);// Escribimos si es llave primaria
-                    writer.Write(column.VarcharLength ?? 0); // Escribimos la longitud si es VARCHAR, por defecto 0
-                }
             }
         }
 
@@ -458,7 +456,7 @@ namespace StoreDataManager
 
                     // Busca DATASTART
                     while (reader.ReadString() != "DATASTART") { } //Cuando consiga la marca de inicio de donde comienza la Información almacenada
-                    //entonces puede eempzar a insertar.
+                    //entonces puede empieza a insertar.
 
                     // Posicionar al final del archivo para agregar los nuevos valores
                     stream.Seek(0, SeekOrigin.End);
@@ -547,17 +545,26 @@ namespace StoreDataManager
         public OperationStatus DropTable(string tableName)
         {
             string tablePath = Path.Combine(RutaDeterminadaPorSet,tableName+".Table");
-            if (!File.Exists(tablePath)) 
+            if (!File.Exists(tablePath) ) 
             {
                 Console.WriteLine($"tabla'{tableName}'no existe,");
                 return OperationStatus.Error;
             }
-            else
-            {
+
                 try 
-                {
+                {   //Se almacena el resultado de buscar si hay información dentro de las tablas.
+                    bool tableHasData = TableHasInfo(tableName);
+
+                    if (tableHasData) //Si tiene información
+                    {
+                        Console.WriteLine($"La tabla '{tableName}' no puede ser eliminada porque contiene datos.");
+                        return OperationStatus.Error;
+                    }
+            
+                    // Si no tiene datos, procedemos a eliminar la tabla
                     File.Delete(tablePath);
-                    Console.WriteLine($"La tabla'{tableName}' se ha eliminado correctamnete.");
+                    RemoveTableFromSystemCatalog(tableName); //Eliminamos el registro del SystemCatalog
+                    Console.WriteLine($"La tabla '{tableName}' se ha eliminado correctamente.");
                     return OperationStatus.Success;
                 }
                 catch (Exception ex)
@@ -565,7 +572,101 @@ namespace StoreDataManager
                     Console.WriteLine($"Error al eliminar la tabla:{ex.Message}");
                     return OperationStatus.Error;
                 }
+        }
+
+        public bool TableHasInfo(string tableName) //La idea está en aprovechar la palabra: "DATASTART" que se escribe al final de 
+        { //las tablas cuando se hace CREATE TABLE, más precisamente al  final de escribir "ENDSTRUCTURE", con el fin de leer más hallá de 
+            // esa marca y determinar si hay datos.
+
+            //Ruta donde se almacena la tabla:
+            string tablePath = Path.Combine(RutaDeterminadaPorSet, tableName + ".Table");
+
+            //condición para verificar el inicio de la información:
+            bool dataStarted = false;
+
+            try
+            {
+                //Leer el archivo de la tabla:
+                using (var reader = new StreamReader(tablePath))
+                {
+                    string? line; //Variable para indicar el lector
+
+                    //Leer línea por línea
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        //Buscamos el indicador que dice donde empieza la información insertada en la tabla.(Después de la estructura, es decir, columnas o encabezado.)
+                        if (line.Contains("DATASTART"))
+                        {
+                            dataStarted = true;
+                            continue; //Como ya encontramos donde debería empezar la información insertada, entonces comprobamos si después de dicha marca
+                            //existe algo insertado, si se mantiene en blanco o null, entonces no hay información:
+                        }
+
+                        //Si ya hemos pasado la marca de inicio de datos, entonces comprobamos si hay información insertada más adelante de ella.
+                        if (dataStarted && !string.IsNullOrWhiteSpace(line))
+                        {
+                            //Si ya estamos más allá de "DATASTART" y resulta que lo que leemos no es nullo o espacios en blanco, significa que hay información
+                            //insertada, ya que una tabla vacía no debería de contener nada después de la marca de inicio.
+                            Console.WriteLine($"La tabla '{tableName}' tiene datos y no puede ser eliminada.");
+                            return true; // Se encontró información
+                        }
+                    }
+                }
             }
-        }  
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al leer la tabla {tableName}: {ex.Message}");
+            }
+
+            // Si no se encontraron datos después del marcador DATASTART, la tabla está vacía
+            return false;
+        }
+
+        public bool RemoveTableFromSystemCatalog(string tableName) //Método especial para eliminar el registro del Documento del SystemCatalog(SystemTables)
+        {
+            string systemTablesFilePath = Path.Combine(SystemCatalogPath, "SystemTables.tables"); //Ruta hacía el archivo binario.
+
+            // Lista que almacenará todos los datos de las tablas (dbId, tableId, tableName) excepto la que se va a eliminar
+            var tableList = new List<(int DbId, int TableId, string TableName)>();
+
+            try
+            {
+                // Leemos el archivo binario y extraemos toda su información
+                using (var reader = new BinaryReader(File.Open(systemTablesFilePath, FileMode.Open)))
+                {
+                    while (reader.BaseStream.Position < reader.BaseStream.Length)
+                    {
+                        int dbId = reader.ReadInt32();      // Leer el dbId
+                        int tableId = reader.ReadInt32();   // Leer el tableId
+                        string currentTableName = reader.ReadString(); // Leer el nombre de la tabla
+
+                        // Si encontramos la tabla a eliminar, no la agregamos a la lista
+                        if (currentTableName != tableName)
+                        {
+                            tableList.Add((dbId, tableId, currentTableName));
+                        }
+                    }
+                }
+
+                // Reescribimos todo el contenido menos la tabla deseada, la cual no fue agregada a la lista
+                using (var writer = new BinaryWriter(File.Open(systemTablesFilePath, FileMode.Create)))
+                {
+                    foreach (var table in tableList)
+                    {
+                        writer.Write(table.DbId);     // Escribir el dbId
+                        writer.Write(table.TableId);  // Escribir el tableId
+                        writer.Write(table.TableName); // Escribir el nombre de la tabla
+                    }
+                }
+
+                Console.WriteLine($"La tabla '{tableName}' ha sido eliminada del SystemCatalog.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar la tabla del catálogo: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
