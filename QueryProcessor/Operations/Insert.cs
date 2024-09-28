@@ -26,7 +26,7 @@ namespace QueryProcessor.Operations
             }
         
             // Obtiene el ID de la tabla desde SystemTables, esto para poder saber en que Tabla insertar.
-            int tableId = Store.GetInstance().GetTableId(tableName);
+            int tableId = GetTableId(tableName);
 
             Console.WriteLine($"Obtenido tableId: {tableId} para la tabla {tableName}"); //Debug
             if (tableId == -1)
@@ -35,7 +35,7 @@ namespace QueryProcessor.Operations
             }
         
             // Obtiene el esquema de la tabla desde SystemColumns usando el ID de la tabla
-            var tableSchema = Store.GetInstance().GetTableSchema(tableId); //Esto para poder validar los datos ingresantes y el esquema guardado en SystemCatalog al momento de crear la tabla.
+            var tableSchema = GetTableSchema(tableId); //Esto para poder validar los datos ingresantes y el esquema guardado en SystemCatalog al momento de crear la tabla.
         
             //Debug: Ver el esquema guardado:
             Console.WriteLine("Esquema de la tabla obtenido:");
@@ -120,5 +120,78 @@ namespace QueryProcessor.Operations
             }
         }
 
+        public List<ColumnDefinition> GetTableSchema(int tableId) //Permite obtener la estructura de una tabla para poder compararlo luego.
+        {
+            var columns = new List<ColumnDefinition>(); //Se crea una lista con la definición de las columnas previamente definidas en el ENUM.
+            string systemColumnsFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemColumns.columns"); //Definimos la ruta hacía el documento en SystemCatalog.
+            
+            using (var reader = new BinaryReader(File.Open(systemColumnsFilePath, FileMode.Open))) { //Abrimos el documento y para poder leer.
+                while (reader.BaseStream.Position != reader.BaseStream.Length) { //Mientras no lleguemos al final vamos leyendo.
+
+                    long currentFilePointer = reader.BaseStream.Position; // Depuración: imprimir el puntero actual del archivo
+                    Console.WriteLine($"Puntero de archivo antes de leer: {currentFilePointer}");
+            
+                    int columnTableId = reader.ReadInt32();
+                    Console.WriteLine($"Leyendo columna para la tabla con ID {columnTableId}");
+            
+                    if (columnTableId == tableId) {
+                        var column = new ColumnDefinition();
+                        column.Name = reader.ReadString();
+                        column.DataType = reader.ReadString();
+                        column.IsNullable = reader.ReadBoolean();
+                        column.IsPrimaryKey = reader.ReadBoolean();
+                        column.VarcharLength = reader.ReadInt32();
+            
+                        Console.WriteLine($"Columna encontrada: {column.Name}, Tipo: {column.DataType}");
+                        columns.Add(column);
+                    } else {
+                        // Si no coincide, seguimos avanzando en el archivo.
+                        // Leer los datos de la columna para avanzar el puntero correctamente
+                        reader.ReadString(); // Name
+                        reader.ReadString(); // DataType
+                        reader.ReadBoolean(); // IsNullable
+                        reader.ReadBoolean(); // IsPrimaryKey
+                        reader.ReadInt32(); // VarcharLength
+                    }
+            
+                    long newFilePointer = reader.BaseStream.Position; // Depuración: imprimir el puntero después de leer
+                    Console.WriteLine($"Puntero de archivo después de leer: {newFilePointer}");
+                }
+            }
+            
+            if (columns.Count == 0) {
+                Console.WriteLine($"Error: No se encontró ninguna columna para la tabla con ID {tableId}.");
+            }
+            
+            return columns;
+        }
+
+        public int GetTableId(string tableName) //Este método es super útil, ya que permite obtener el ID de la tabla de la cual se le pasa un nombre.
+        { //Su uso es implementado en la clase Insert.cs, como es necesario extraer el esquema de las columnas para verificar antes de insertar, entonces este método se encarga de
+            //obtener el ID de la tabla que sea actual, gracias a comparar su nombre con alguno de los existentes en la extración de ReadFromSystemTables en SystemCatalog.
+            var tables = ReadFromSystemTables();
+            var table = tables.FirstOrDefault(t => t.TableName == tableName);
+            return table != default ? table.TableId : -1;
+        }
+
+        private List<(int DbId, int TableId, string TableName)> ReadFromSystemTables() { //Genera la lista de tablas para luego compararlas.
+            string systemTablesFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemTables.tables"); //Obtenemos la ruta del documento que contiene las tablas.
+            
+            if (!File.Exists(systemTablesFilePath)) {// Verificar si el archivo existe antes de intentar leer
+                Console.WriteLine("Error: El archivo SystemTables.tables no existe.");
+                return new List<(int, int, string)>();
+            }
+        
+            var tableList = new List<(int, int, string)>(); //Estrucutra del almacén que contendrá todas las tablas, es una lista.
+            using (var reader = new BinaryReader(File.Open(systemTablesFilePath, FileMode.Open))) {//Abrimos el archivo y comenzamos a agregar todas las tablas que estén ahí.
+                while (reader.BaseStream.Position != reader.BaseStream.Length) {//Esto hasta que se llegue al máximo de la longitud)(largo) del archivo.
+                    int dbId = reader.ReadInt32();
+                    int tableId = reader.ReadInt32();
+                    string tableName = reader.ReadString();
+                    tableList.Add((dbId, tableId, tableName));
+                }
+            }
+            return tableList; //Lista preparada para ser comparada.
+        }
     }
 }
