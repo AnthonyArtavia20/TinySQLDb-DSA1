@@ -220,5 +220,10 @@ namespace StoreDataManager
             }
         }
         
+        public OperationStatus CreateIndexes(string indexName, string tableName, string columnName, string indexType)
+        {
+            var CreateIndexesStoreOperation = new CreateIndexesStoreOperation(DataPath, Entities.ConfigPaths.SystemCatalogPath, RutaDeterminadaPorSet);
+            return CreateIndexesStoreOperation.Execute(indexName, tableName, columnName, indexType);
+        }
     }
 }

@@ -166,7 +166,7 @@ namespace QueryProcessor.Operations
             return columns;
         }
 
-        public int GetTableId(string tableName) //Este método es super útil, ya que permite obtener el ID de la tabla de la cual se le pasa un nombre.
+        public static int GetTableId(string tableName) //Este método es super útil, ya que permite obtener el ID de la tabla de la cual se le pasa un nombre.
         { //Su uso es implementado en la clase Insert.cs, como es necesario extraer el esquema de las columnas para verificar antes de insertar, entonces este método se encarga de
             //obtener el ID de la tabla que sea actual, gracias a comparar su nombre con alguno de los existentes en la extración de ReadFromSystemTables en SystemCatalog.
             var tables = ReadFromSystemTables();
@@ -174,7 +174,7 @@ namespace QueryProcessor.Operations
             return table != default ? table.TableId : -1;
         }
 
-        private List<(int DbId, int TableId, string TableName)> ReadFromSystemTables() { //Genera la lista de tablas para luego compararlas.
+        private static List<(int DbId, int TableId, string TableName)> ReadFromSystemTables() { //Genera la lista de tablas para luego compararlas.
             string systemTablesFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemTables.tables"); //Obtenemos la ruta del documento que contiene las tablas.
             
             if (!File.Exists(systemTablesFilePath)) {// Verificar si el archivo existe antes de intentar leer
@@ -182,7 +182,7 @@ namespace QueryProcessor.Operations
                 return new List<(int, int, string)>();
             }
         
-            var tableList = new List<(int, int, string)>(); //Estrucutra del almacén que contendrá todas las tablas, es una lista.
+            var tableList = new List<(int, int, string)>(); //Estructura del almacén que contendrá todas las tablas, es una lista.
             using (var reader = new BinaryReader(File.Open(systemTablesFilePath, FileMode.Open))) {//Abrimos el archivo y comenzamos a agregar todas las tablas que estén ahí.
                 while (reader.BaseStream.Position != reader.BaseStream.Length) {//Esto hasta que se llegue al máximo de la longitud)(largo) del archivo.
                     int dbId = reader.ReadInt32();
