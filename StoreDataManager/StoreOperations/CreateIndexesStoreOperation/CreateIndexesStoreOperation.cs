@@ -24,8 +24,7 @@ namespace StoreDataManager.StoreOperations
 
                 // 2. Crear la estructura del índice en memoria
 
-                // 3. Poblar el índice con los datos existentes
-
+                // 3. Poblar el índice/Árbol con el ID y posición en el archivo de la tabla actual.
 
                 Console.WriteLine($"Índice '{indexName}' creado exitosamente para la tabla '{tableName}'.");
                 return OperationStatus.Success;
