@@ -26,9 +26,9 @@ SELECT * FROM Empleados;
 CREATE TABLE Estudiantes (
     ID INTEGER NOT NULL PRIMARY KEY,
     Nombre VARCHAR(50) NOT NULL,
-    IngredienteEspecial VARCHAR(50) NOT NULL,
-    Fechadeexpidacion DATETIME,
-    Precio DOUBLE
+    Apellido VARCHAR(50) NOT NULL,
+    FechaDeIngreso DATETIME,
+    Beca DOUBLE
 );
 
-DROP TABLE Estudiantes;
+DROP TABLE Estudiantes;

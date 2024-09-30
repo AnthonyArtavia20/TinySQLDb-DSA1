@@ -97,6 +97,10 @@ namespace StoreDataManager.StoreOperations
                         {
                             tableList.Add((dbId, tableId, currentTableName));
                         }
+                        else 
+                        {
+                            RemoveColumsFromSystemCatalog(tableId);
+                        }
                     }
                 }
 
@@ -116,6 +120,57 @@ namespace StoreDataManager.StoreOperations
             catch (Exception ex)
             {
                 Console.WriteLine($"Error al eliminar la tabla del catálogo: {ex.Message}");
+                return false;
+            }
+        }
+
+        private bool RemoveColumsFromSystemCatalog(int tableId)
+        {
+            string systemColumnsFilePath = Path.Combine(systemCatalogPath, "SystemColumns.columns");
+            
+            var columnsList = new List<(int TableId, string Name, string DataType, bool IsNullable, bool IsPrimaryKey, int VarcharLength)>();
+
+            try
+            {
+                using (var reader = new BinaryReader(File.Open(systemColumnsFilePath, FileMode.Open)))
+                {
+                    while (reader.BaseStream.Position < reader.BaseStream.Length)
+                    {
+                        int currentTableId = reader.ReadInt32();
+                        string Name = reader.ReadString();
+                        string DataType = reader.ReadString();
+                        bool IsNullable = reader.ReadBoolean();
+                        bool IsPrimaryKey = reader.ReadBoolean();
+                        int VarcharLength = reader.ReadInt32();
+
+                        if (currentTableId != tableId)
+                        {
+                            columnsList.Add((currentTableId, Name, DataType, IsNullable, IsPrimaryKey, VarcharLength));
+                        }
+                    }
+                }
+
+                using (var writer = new BinaryWriter(File.Open(systemColumnsFilePath, FileMode.Create)))
+                {
+                    foreach (var column in columnsList)
+                    {
+                        
+                        writer.Write(column.TableId);
+                        writer.Write(column.Name);
+                        writer.Write(column.DataType);
+                        writer.Write(column.IsNullable);
+                        writer.Write(column.IsPrimaryKey);
+                        if (column.VarcharLength != null) {
+                            writer.Write(column.VarcharLength);
+                        }
+                        
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar la columna del catálogo: {ex.Message}");
                 return false;
             }
         }
