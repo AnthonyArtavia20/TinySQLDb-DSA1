@@ -68,13 +68,6 @@ namespace StoreDataManager.StoreOperations
                 return OperationStatus.Error;
             }
         }
-
-        private bool TableExists(string tableName)
-        {
-            var tables = ReadFromSystemTables();
-            return tables.Any(tbl => tbl.TableName == tableName);
-        }
-
         private int GetNextTableId()
         {
             var tables = ReadFromSystemTables();
@@ -85,9 +78,15 @@ namespace StoreDataManager.StoreOperations
             return tables.Max(t => t.TableId) + 1;
         }
 
-        private List<(int DbId, int TableId, string TableName)> ReadFromSystemTables()
+        public static bool TableExists(string tableName) //Se volvieron staticas para que puedan ser usados en otras clases
         {
-            string systemTablesFilePath = Path.Combine(SystemCatalogPath, "SystemTables.tables");
+            var tables = ReadFromSystemTables();
+            return tables.Any(tbl => tbl.TableName == tableName);
+        }
+
+        public static List<(int DbId, int TableId, string TableName)> ReadFromSystemTables()//Se volvieron staticas para que puedan ser usados en otras clases
+        {
+            string systemTablesFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemTables.tables");
             
             if (!File.Exists(systemTablesFilePath))
             {
