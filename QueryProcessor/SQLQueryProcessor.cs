@@ -70,7 +70,21 @@ namespace QueryProcessor
                 }
                 var result = new DropTable().Execute(tableName); //Pasamos dicho nombre.
                 return (result, string.Empty);
-            } 
+            }
+            if (sentence.StartsWith("CREATE INDEX"))
+            {
+                // Se parsea la instrucción completa con el objetivo de obtener la información deseada para
+                //crear el índice.
+                var parts = sentence.Split(new[] { "CREATE INDEX", "ON", "(", ")", "OF TYPE" }, StringSplitOptions.RemoveEmptyEntries);
+                string indexName = parts[0].Trim();
+                string tableName = parts[1].Trim();
+                string columnNameKeyValue = parts[2].Trim();
+                string indexType = parts[3].Trim();
+
+                //Se pasan todos los datos para verificar si la tabla, columnas etc... existen.
+                var result = new CreateIndexes().Execute( indexName, tableName, columnNameKeyValue, indexType);
+                return (result,string.Empty); //Se devuelve el resultado de la operación.
+            }
             else
             {
                 throw new UnknownSQLSentenceException();
