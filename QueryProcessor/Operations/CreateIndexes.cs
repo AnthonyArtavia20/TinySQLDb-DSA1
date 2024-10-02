@@ -8,6 +8,8 @@ namespace QueryProcessor.Operations
     {
         public OperationStatus Execute(string indexName, string tableName, string columnNameKeyValue, string indexType)
         {
+            //Verificaciones  para toda la información ingresante:
+            
             //Verifica que la tabla exista:
             if (!CreateTableOperation.TableExists(tableName))
             {
@@ -66,22 +68,26 @@ namespace QueryProcessor.Operations
             {
                 while (reader.BaseStream.Position != reader.BaseStream.Length)
                 {
+                    // Leer el ID de la tabla asociada a la columna
                     int columnTableId = reader.ReadInt32();
+                    // Leer el nombre de la columna
                     string currentColumnName = reader.ReadString();
 
-                    // Saltamos el resto de la información de la columna
-                    reader.ReadString(); // DataType
-                    reader.ReadBoolean(); // IsNullable
-                    reader.ReadBoolean(); // IsPrimaryKey
-                    reader.ReadInt32(); // VarcharLength
+                    // Leer y omitir el resto de la información de la columna
+                    string dataType = reader.ReadString();
+                    bool isNullable = reader.ReadBoolean();
+                    bool isPrimaryKey = reader.ReadBoolean();
+                    int varcharLength = reader.ReadInt32();
 
-                    if (columnTableId == IDtable && currentColumnName == columnName)
+                    // Comparar el ID de la tabla y el nombre de la columna
+                    if (columnTableId == IDtable && currentColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase))
                     {
-                        return true; // La columna existe en la tabla especificada
+                        return true; // La columna existe
                     }
                 }
             }
 
+            // Si llegamos aquí, la columna no existe
             Console.WriteLine($"Error al comprobar columna antes de crear el Índice: La columna '{columnName}' no existe en la tabla '{tableName}'.");
             return false; // La columna no se encontró
         }

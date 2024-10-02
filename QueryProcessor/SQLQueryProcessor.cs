@@ -73,17 +73,29 @@ namespace QueryProcessor
             }
             if (sentence.StartsWith("CREATE INDEX"))
             {
-                // Se parsea la instrucción completa con el objetivo de obtener la información deseada para
-                //crear el índice.
-                var parts = sentence.Split(new[] { "CREATE INDEX", "ON", "(", ")", "OF TYPE" }, StringSplitOptions.RemoveEmptyEntries);
-                string indexName = parts[0].Trim();
-                string tableName = parts[1].Trim();
-                string columnNameKeyValue = parts[2].Trim();
-                string indexType = parts[3].Trim();
-
+                // Se parsea la instrucción completa con el objetivo de obtener la información deseada para crear el índice.
+                // Ajuste de Split para evitar problemas con los delimitadores
+                var parts = sentence.Split(new[] { "CREATE INDEX ", " ON ", "(", ")", " OF TYPE " }, StringSplitOptions.RemoveEmptyEntries);
+            
+                if (parts.Length != 4)
+                {
+                    throw new Exception("Error al parsear la instrucción CREATE INDEX. La sintaxis es incorrecta.");
+                }
+            
+                string indexName = parts[0].Trim(); // Aquí se obtiene el nombre del índice
+                string tableName = parts[1].Trim(); // Aquí se obtiene el nombre de la tabla
+                string columnNameKeyValue = parts[2].Trim(); // Aquí se obtiene la columna clave (debería ser 'ID')
+                string indexType = parts[3].Trim(); // Aquí se obtiene el tipo de índice (BTREE o BST)
+            
+                // Verificar que el tipo de índice sea válido
+                if (indexType != "BTREE" && indexType != "BST")
+                {
+                    throw new Exception("Tipo de índice no válido. Use 'BTREE' o 'BST'.");
+                }
+            
                 //Se pasan todos los datos para verificar si la tabla, columnas etc... existen.
-                var result = new CreateIndexes().Execute( indexName, tableName, columnNameKeyValue, indexType);
-                return (result,string.Empty); //Se devuelve el resultado de la operación.
+                var result = new CreateIndexes().Execute(indexName, tableName, columnNameKeyValue, indexType);
+                return (result, string.Empty); //Se devuelve el resultado de la operación.
             }
             else
             {

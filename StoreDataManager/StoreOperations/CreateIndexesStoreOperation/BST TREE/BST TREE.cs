@@ -34,6 +34,7 @@ namespace StoreDataManager.StoreOperations
 
         public void Insert(int key, long position) //Operación que permite agregar valores al árbol binario.
         {
+            Console.WriteLine($"Insertando clave: {key}, posición: {position}");
             actual = InsertRecursive(actual, key, position); //Actualizamos el valor de la raíz en base al
             //valor insertado.
         }
@@ -42,15 +43,18 @@ namespace StoreDataManager.StoreOperations
         {
             if (node == null) 
             {
+                Console.WriteLine($"Nodo creado: clave: {key}, posición: {position}");
                 return new BSTNode(key, position);
             }
 
             if (key < node.Key)
             {
+                Console.WriteLine($"Valores a insertar menores a la raiz, navegando a la izquierda (clave actual: {node.Key})");
                 node.Left = InsertRecursive(node.Left, key, position); //Inserta por el lado izquierdo
             }
             else if (key > node.Key)
             {
+                Console.WriteLine($"Valores a insertar mayores a la raiz, navegando a la derecha (clave actual: {node.Key})");
                 node.Right = InsertRecursive(node.Right, key, position);//Inserta por el lado derecho
             }
             

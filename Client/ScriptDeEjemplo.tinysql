@@ -32,3 +32,5 @@ CREATE TABLE Estudiantes (
 );
 
 DROP TABLE Estudiantes;
+
+CREATE INDEX Empleados_Id ON Empleados(ID) OF TYPE BST;
