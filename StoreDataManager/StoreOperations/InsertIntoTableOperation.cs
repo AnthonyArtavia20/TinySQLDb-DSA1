@@ -111,8 +111,12 @@ namespace StoreDataManager.StoreOperations
                                 writer.Write(long.Parse(value));
                                 break;
                             default: // VARCHAR
-                                writer.Write(value.Length);
-                                writer.Write(value.ToCharArray());
+                                if (value.Length > column.VarcharLength)
+                                {
+                                    throw new Exception($"El valor para la columna {column.Name} excede la longitud permitida.");
+                                }
+                                writer.Write(value.Length); // Escribir longitud
+                                writer.Write(value.ToCharArray()); // Escribir valor
                                 break;
                         }
                     }

@@ -23,25 +23,25 @@ namespace StoreDataManager.StoreOperations
                 ActualizarIndexInSystemCatalog(indexName, tableName, columnName, indexType);
 
                 // 2. Crear la estructura del índice en memoria
-                BinarySearchTree? indexStructure = null; // Se inicializa en null porque nada error al no aignarle ningun valor inicial.
+                BinarySearchTree? indexStructure = null;
 
-                if (indexType == "BST") //BinarySearchTree
+                if (indexType == "BST") 
                 {
-                    indexStructure = new BinarySearchTree(); // Se hace una instancia de la estructura de BST
+                    indexStructure = new BinarySearchTree(); // Instancia del BST
                 }
-                else if (indexType == "BTREE") //Para los Balanced Trees
+                else if (indexType == "BTREE") 
                 {
-                    return OperationStatus.Error;//Falta implementar este árbol
+                    return OperationStatus.Error; // Falta implementar BTREE
                 }
-                else //Desde "CreateIndexes" ya se verifica esto pero es para evitar NullReferences.
+                else 
                 {
                     throw new Exception("Tipo de índice no soportado.");
                 }
 
-                // 3. Poblar el índice/Árbol con la key y posición en el archivo de la tabla actual.
+                // 3. Poblar el índice con los datos de la columna especificada
                 ActualizarIndice(indexStructure, tableName, columnName);
 
-                Console.WriteLine($"Índice '{indexName}' creado exitosamente para la tabla '{tableName}' y ColumnaKeyValue: {columnName}.");
+                Console.WriteLine($"Índice '{indexName}' creado exitosamente para la tabla '{tableName}' y columna '{columnName}'.");
                 return OperationStatus.Success;
             }
             catch (Exception ex)
@@ -51,32 +51,21 @@ namespace StoreDataManager.StoreOperations
             }
         }
 
-        private void ActualizarIndexInSystemCatalog(string indexName, string tableName, string columnName, string indexType)
-        {
-            string SystemIndexesFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemIndexes.Indexes"); //Buscamos el archivo para almacenar el nuevo indice.
-
-            using (var writer = new BinaryWriter(File.Open(SystemIndexesFilePath, FileMode.Append)))
-            {
-                //Se escribe el formato esperado para ser leido más tarde cuando el server se reinicie.
-                writer.Write(indexName); 
-                writer.Write(tableName);
-                writer.Write(columnName);
-                writer.Write(indexType);
-            }
-        }
-
         private void ActualizarIndice(BinarySearchTree indexStructure, string tableName, string columnName)
         {
             // Ruta del archivo binario de la tabla
-            string path = Path.Combine(currentDatabasePath, $"{tableName}.Table");
-
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
-            using (BinaryReader reader = new BinaryReader(fs))
+            string fullPath = Path.Combine(currentDatabasePath, $"{tableName}.Table");
+        
+            using (FileStream stream = File.Open(fullPath, FileMode.Open))
+            using (BinaryReader reader = new BinaryReader(stream))
             {
-                // Leer la estructura de la tabla (adaptar según cómo esté almacenada)
-                int columnCount = reader.ReadInt32(); 
+                Console.WriteLine("Iniciando el proceso de actualización del índice.");
+        
+                // Leer la estructura de la tabla
+                reader.ReadString(); // "TINYSQLSTART"
+                int columnCount = reader.ReadInt32();
                 List<ColumnDefinition> columns = new List<ColumnDefinition>();
-
+        
                 for (int i = 0; i < columnCount; i++)
                 {
                     var column = new ColumnDefinition
@@ -89,41 +78,102 @@ namespace StoreDataManager.StoreOperations
                     };
                     columns.Add(column);
                 }
-
-                // Buscar la columna solicitada
+        
+                // Encontrar la columna solicitada
                 var targetColumn = columns.FirstOrDefault(c => c.Name == columnName);
                 if (targetColumn == null)
                 {
                     throw new Exception($"Columna '{columnName}' no encontrada en la tabla '{tableName}'.");
                 }
-
-                // Leer registros y poblar el índice
+        
+                // Mover el lector hasta la sección de datos
+                while (reader.ReadString() != "DATASTART") { }
+        
+                // Calcular el tamaño fijo de cada registro
+                int tamañoRegistro = CalcularTamañoRegistro(columns);
+        
+                // Leer los registros y poblar el índice
                 while (reader.BaseStream.Position < reader.BaseStream.Length)
                 {
-                    long posicionRegistro = reader.BaseStream.Position; // Guardar la posición del registro
-                    int valorColumna = LeerValorDeColumna(reader, targetColumn); // Leer el valor de la columna
-
-                    // Insertar en el índice
+                    long posicionRegistro = reader.BaseStream.Position;
+        
+                    // Leer el valor de la columna especificada
+                    int valorColumna = LeerValorDeColumna(reader, targetColumn);
+        
+                    // Insertar en el índice el valor de la columna junto con la posición
                     indexStructure.Insert(valorColumna, posicionRegistro);
+        
+                    // Saltar al siguiente registro
+                    reader.BaseStream.Seek(tamañoRegistro - CalcularTamañoColumna(targetColumn), SeekOrigin.Current);
                 }
             }
         }
+        
+        private int CalcularTamañoRegistro(List<ColumnDefinition> columns)
+        {
+            int tamaño = 0;
+            foreach (var column in columns)
+            {
+                tamaño += CalcularTamañoColumna(column);
+            }
+            return tamaño;
+        }
+        
+        private int CalcularTamañoColumna(ColumnDefinition column)
+        {
+            if (column.DataType.StartsWith("VARCHAR"))
+            {
+                return column.VarcharLength ?? 0; // Usamos la longitud máxima declarada para VARCHAR
+            }
 
+            switch (column.DataType)
+            {
+                case "INTEGER":
+                    return 4; // Tamaño fijo de 4 bytes
+                case "DOUBLE":
+                    return 8; // Tamaño fijo de 8 bytes
+                case "DATETIME":
+                    return 8; // Tamaño fijo de 8 bytes
+                default:
+                    throw new Exception($"Tipo de dato '{column.DataType}' no soportado.");
+            }
+        }
+        
         private int LeerValorDeColumna(BinaryReader reader, ColumnDefinition column)
         {
+            if (column.DataType.StartsWith("VARCHAR"))
+            {
+                int varcharLength = column.VarcharLength ?? 0; // Usamos la longitud máxima
+                char[] chars = reader.ReadChars(varcharLength); // Leer la longitud máxima de VARCHAR
+                string strValue = new string(chars).Trim(); // Eliminar los espacios en blanco extra
+                return strValue.GetHashCode(); // Devolver un hash del valor string
+            }
+
             switch (column.DataType)
             {
                 case "INTEGER":
                     return reader.ReadInt32();
                 case "DOUBLE":
-                    return (int)reader.ReadDouble(); // Convertir a int para simplificar
-                case "VARCHAR":
-                    int length = reader.ReadInt32();
-                    string strValue = new string(reader.ReadChars(length));
-                    return strValue.GetHashCode(); // O usar otro método para manejar strings
+                    return (int)reader.ReadDouble();
+                case "DATETIME":
+                    return (int)reader.ReadInt64();
                 default:
                     throw new Exception($"Tipo de dato '{column.DataType}' no soportado.");
             }
+        }
+
+        private void ActualizarIndexInSystemCatalog(string indexName, string tableName, string columnName, string indexType)
+        {
+            string SystemIndexesFilePath = Path.Combine(systemCatalogPath, "SystemIndexes.Indexes");
+
+            using (var writer = new BinaryWriter(File.Open(SystemIndexesFilePath, FileMode.Append)))
+            {
+                writer.Write(indexName);
+                writer.Write(tableName);
+                writer.Write(columnName);
+                writer.Write(indexType);
+            }
+            Console.WriteLine("Se ingresó el índice a SystemIndexes");
         }
     }
 }

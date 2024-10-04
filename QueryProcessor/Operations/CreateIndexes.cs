@@ -111,7 +111,7 @@ namespace QueryProcessor.Operations
                 }
             }
 
-            Console.WriteLine($"Error al comprobar la existencia del Índice antes de crear el Índice: El índice '{indexName}' no existe en la tabla '{tableName}'.");
+            Console.WriteLine($"Anterior mente es la tabla '{tableName}' no se había creado '{indexName}', por lo tanto se permite crear este.");
             return false; // La columna no se encontró
         }
     }

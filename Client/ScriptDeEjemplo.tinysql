@@ -1,15 +1,3 @@
-CREATE DATABASE Restaurante;
-SET Restaurante;
-CREATE TABLE Comidas (
-    ID INTEGER NOT NULL PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL,
-    IngredienteEspecial VARCHAR(50) NOT NULL,
-    Fechadeexpidacion DATETIME,
-    Precio DOUBLE
-);
-INSERT INTO Comidas (ID, Nombre, IngredienteEspecial, Fechadeexpidacion, Precio) VALUES (1, 'Pollo', 'Romero', '2022-03-31 12:23:43', 5000.00);
-SELECT * FROM Comidas;
-
 CREATE DATABASE UNIVERSIDAD;
 SET UNIVERSIDAD;
 CREATE TABLE Empleados (

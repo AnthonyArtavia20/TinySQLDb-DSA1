@@ -84,7 +84,7 @@ namespace QueryProcessor
             
                 string indexName = parts[0].Trim(); // Aquí se obtiene el nombre del índice
                 string tableName = parts[1].Trim(); // Aquí se obtiene el nombre de la tabla
-                string columnNameKeyValue = parts[2].Trim(); // Aquí se obtiene la columna clave (debería ser 'ID')
+                string columnNameKeyValue = parts[2].Trim(); // Aquí se obtiene la columna clave (debería ser 'ID o primaryKey')
                 string indexType = parts[3].Trim(); // Aquí se obtiene el tipo de índice (BTREE o BST)
             
                 // Verificar que el tipo de índice sea válido
