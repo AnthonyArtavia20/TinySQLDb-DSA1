@@ -97,6 +97,46 @@ namespace QueryProcessor
                 var result = new CreateIndexes().Execute(indexName, tableName, columnNameKeyValue, indexType);
                 return (result, string.Empty); //Se devuelve el resultado de la operación.
             }
+            if (sentence.StartsWith("UPDATE"))
+            {
+                // Split the sentence into the relevant parts
+                var parts = sentence.Split(new[] { "UPDATE ", " SET ", " WHERE " }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length != 3)
+                {
+                    throw new Exception("Error al parsear la sentencia UPDATE. La sintaxis es incorrecta.");
+                }
+
+                // Extract table name
+                string tableName = parts[0].Trim();
+
+                // Split the SET clause into column and value
+                var setClause = parts[1].Split(new[] { " = " }, StringSplitOptions.RemoveEmptyEntries);
+                if (setClause.Length != 2)
+                {
+                    throw new Exception("Error al parsear la cláusula SET.");
+                }
+                string columnToUpdate = setClause[0].Trim();
+                string newValue = setClause[1].Trim().Trim('"');  // Remove extra quotes around the value
+
+                // Split the WHERE clause into column and value
+                var whereClause = parts[2].Split(new[] { " == " }, StringSplitOptions.RemoveEmptyEntries);
+                if (whereClause.Length != 2)
+                {
+                    throw new Exception("Error al parsear la cláusula WHERE.");
+                }
+                string whereColumn = whereClause[0].Trim();
+                string whereValue = whereClause[1].Trim();
+
+                // Now you have all the parts you need
+                Console.WriteLine($"Tabla: {tableName}, Columna a actualizar: {columnToUpdate}, Nuevo valor: {newValue}");
+                Console.WriteLine($"Columna WHERE: {whereColumn}, Valor WHERE: {whereValue}");
+                Console.WriteLine($"Valores solos para verlos: {tableName},{columnToUpdate},{newValue},{whereColumn},{whereValue}");
+
+                // Puedes llamar a la lógica de la operación Update desde aquí
+                var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue);
+                return (result, string.Empty);
+            }
             else
             {
                 throw new UnknownSQLSentenceException();

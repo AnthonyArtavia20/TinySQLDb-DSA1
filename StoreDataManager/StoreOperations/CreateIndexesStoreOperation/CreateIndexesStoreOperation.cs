@@ -1,5 +1,4 @@
 using Entities;
-
 namespace StoreDataManager.StoreOperations
 {
     public class CreateIndexesStoreOperation
@@ -99,15 +98,46 @@ namespace StoreDataManager.StoreOperations
         
                     // Leer el valor de la columna especificada
                     int valorColumna = LeerValorDeColumna(reader, targetColumn);
+
+                    Console.WriteLine($"Valor leído de la columna '{columnName}': {valorColumna}");
         
                     // Insertar en el índice el valor de la columna junto con la posición
                     indexStructure.Insert(valorColumna, posicionRegistro);
         
-                    // Saltar al siguiente registro
+                    // Saltar al siguiente registro sin restar el tamaño de la columna actual
+                    // Mover al siguiente registro
                     reader.BaseStream.Seek(tamañoRegistro - CalcularTamañoColumna(targetColumn), SeekOrigin.Current);
+
                 }
             }
+            // Aquí añadimos el recorrido del árbol para verificar los valores insertados
+            Console.WriteLine("Recorrido en orden del índice (BST):");
+            indexStructure.InOrderTraversal();
         }
+        private int LeerValorDeColumna(BinaryReader reader, ColumnDefinition column)
+        {
+            // Verifica el tipo de dato y lee el valor de la columna correspondiente
+            if (column.DataType.StartsWith("VARCHAR"))
+            {
+                int varcharLength = column.VarcharLength ?? 0;
+                byte[] chars = reader.ReadBytes(varcharLength); // Leer el tamaño completo de VARCHAR
+                string strValue = System.Text.Encoding.UTF8.GetString(chars).TrimEnd(); // Convertir a string y quitar espacios
+                return strValue.GetHashCode(); // Devolver un hash del valor string
+            }
+
+            switch (column.DataType)
+            {
+                case "INTEGER":
+                    return reader.ReadInt32(); // Leer un entero de 4 bytes
+                case "DOUBLE":
+                    return (int)reader.ReadDouble(); // Leer un double de 8 bytes, convertido a int para el índice
+                case "DATETIME":
+                    return (int)reader.ReadInt64(); // Leer un datetime de 8 bytes
+                default:
+                    throw new Exception($"Tipo de dato '{column.DataType}' no soportado.");
+            }
+        }
+
         
         private int CalcularTamañoRegistro(List<ColumnDefinition> columns)
         {
@@ -139,28 +169,6 @@ namespace StoreDataManager.StoreOperations
             }
         }
         
-        private int LeerValorDeColumna(BinaryReader reader, ColumnDefinition column)
-        {
-            if (column.DataType.StartsWith("VARCHAR"))
-            {
-                int varcharLength = column.VarcharLength ?? 0; // Usamos la longitud máxima
-                char[] chars = reader.ReadChars(varcharLength); // Leer la longitud máxima de VARCHAR
-                string strValue = new string(chars).Trim(); // Eliminar los espacios en blanco extra
-                return strValue.GetHashCode(); // Devolver un hash del valor string
-            }
-
-            switch (column.DataType)
-            {
-                case "INTEGER":
-                    return reader.ReadInt32();
-                case "DOUBLE":
-                    return (int)reader.ReadDouble();
-                case "DATETIME":
-                    return (int)reader.ReadInt64();
-                default:
-                    throw new Exception($"Tipo de dato '{column.DataType}' no soportado.");
-            }
-        }
 
         private void ActualizarIndexInSystemCatalog(string indexName, string tableName, string columnName, string indexType)
         {

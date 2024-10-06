@@ -84,6 +84,12 @@ namespace StoreDataManager
             return createTableOperation.Execute(tableName, columns, RutaDeterminadaPorSet);
         }
 
+        public OperationStatus Update(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue) //Operación para poder crear tablas vacías pero con encabezados a los cuales agregarles datos.
+        {
+            var updateOperation = new UpdateOperation(RutaDeterminadaPorSet);
+            return updateOperation.Execute(tableName,columnToUpdate, newValue, whereColumn, whereValue);
+        }
+
         public OperationStatus InsertIntoTable(string tableName, string[] columnas, string[] valores) //Permite insertar los datos en alguna tabla
         {//pero solo si se verificaron que dichos datos cumplen con la estructura esperada, esto se logra comparar en la clase dedicada para la operación
             // Insert.cs en Operations en QueryProcessor.
@@ -99,126 +105,131 @@ namespace StoreDataManager
         }
 
                 //!!!!!!!!!!!!!!!!!!!!Este método tiene que ser reestructurado según como se pide en el documento.!!!!!!!!!!!!!!!!!!!!!
-        public (OperationStatus Status, string Data) Select(string NombreDeTableASeleccionar) //Permite leer todo el contenido de un archivo binario(Tablas)
+        public (OperationStatus Status, string Data) Select(string NombreDeTableASeleccionar)
+{
+    string tableName = NombreDeTableASeleccionar + ".Table";
+    string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName);
+
+    Console.WriteLine($"Attempting to select from table: {tableName}");
+    Console.WriteLine($"Full path: {fullPath}");
+
+    if (!File.Exists(fullPath))
+    {
+        Console.WriteLine($"Error: The table file '{fullPath}' does not exist.");
+        return (OperationStatus.Error, $"Error: La tabla '{NombreDeTableASeleccionar}' no existe.");
+    }
+
+    StringBuilder resultBuilder = new StringBuilder();
+    try
+    {
+        using (FileStream stream = File.Open(fullPath, FileMode.Open))
+        using (BinaryReader reader = new BinaryReader(stream))
         {
-            // Prepara el nombre completo del archivo de la tabla
-            string tableName = NombreDeTableASeleccionar + ".Table"; //Se preapara la tabla a leer.
-            string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName);//Se combina toda la ruta
-
-            // Log para depuración
-            Console.WriteLine($"Attempting to select from table: {tableName}");
-            Console.WriteLine($"Full path: {fullPath}");
-
-            // Verifica si el archivo de la tabla existe.
-            if (!File.Exists(fullPath))//Prevención de errores, la tabla no existe.
+            // Verificar la marca de inicio
+            string startMarker = reader.ReadString();
+            Console.WriteLine($"Start marker: {startMarker}");
+            if (startMarker != "TINYSQLSTART")
             {
-                Console.WriteLine($"Error: The table file '{fullPath}' does not exist.");
-                return (OperationStatus.Error, $"Error: La tabla '{NombreDeTableASeleccionar}' no existe.");
+                throw new InvalidDataException("Formato de archivo inválido.");
             }
-        
-            StringBuilder resultBuilder = new StringBuilder(); //Creamos una string mutable que pueda albergar toda la estructura que contiene el archivo binario.
-            try
+
+            // Leer la estructura de la tabla
+            int columnCount = reader.ReadInt32();
+            Console.WriteLine($"Column count: {columnCount}");
+            List<ColumnDefinition> columns = new List<ColumnDefinition>();
+
+            for (int i = 0; i < columnCount; i++)
             {
-                using (FileStream stream = File.Open(fullPath, FileMode.Open))
-                using (BinaryReader reader = new BinaryReader(stream))
+                var column = new ColumnDefinition
                 {
-                    // Verificar la marca de inicio, por eso era tan importante añadirlo en la InsertOperation.
-                    string startMarker = reader.ReadString();
-                    if (startMarker != "TINYSQLSTART")
-                    {
-                        throw new InvalidDataException("Formato de archivo inválido.");
-                    }
-        
-                    // Leer la estructura de la tabla
-                    int columnCount = reader.ReadInt32();
-                    List<ColumnDefinition> columns = new List<ColumnDefinition>();
-        
-                    for (int i = 0; i < columnCount; i++) //Se comienza a añadir como columnas los encabezados
-                    {
-                        var column = new ColumnDefinition//<-- Este archivo se encuentra en Entities, permite definir que tipos de datos se esperan y cuales son.
-                        {
-                            Name = reader.ReadString(),
-                            DataType = reader.ReadString(),
-                            IsNullable = reader.ReadBoolean(),
-                            IsPrimaryKey = reader.ReadBoolean(),
-                            VarcharLength = reader.ReadInt32()
-                        };
-                        Console.WriteLine($"Columna agregada: Name={column.Name}, Type={column.DataType}, Nullable={column.IsNullable}, PrimaryKey={column.IsPrimaryKey}, VarcharLength={column.VarcharLength}");
-                        columns.Add(column);
-                    }
-        
-                    // Verificar la marca de fin de estructura
-                    string endStructureMarker = reader.ReadString();
-                    if (endStructureMarker != "ENDSTRUCTURE")
-                    {
-                        throw new InvalidDataException("Invalid file structure");
-                    }
-        
-                    // Construye el encabezado del resultado
-                    resultBuilder.AppendLine(string.Join(",", columns.Select(c => c.Name)));
+                    Name = reader.ReadString(),
+                    DataType = reader.ReadString(),
+                    IsNullable = reader.ReadBoolean(),
+                    IsPrimaryKey = reader.ReadBoolean(),
+                    VarcharLength = reader.ReadInt32()
+                };
+                Console.WriteLine($"Columna agregada: Name={column.Name}, Type={column.DataType}, Nullable={column.IsNullable}, PrimaryKey={column.IsPrimaryKey}, VarcharLength={column.VarcharLength}");
+                columns.Add(column);
+            }
 
-                    //-----------------------Apartir de aquí comienza a añadir los datos almacenados------------------------------------------------------
-                    // Buscar el inicio de los datos
-                    string dataStartMarker = reader.ReadString();
-                    if (dataStartMarker != "DATASTART")
-                    {
-                        throw new InvalidDataException("Marca donde comienza la información no encontrada");
-                    }
+            // Verificar la marca de fin de estructura
+            string endStructureMarker = reader.ReadString();
+            Console.WriteLine($"End structure marker: {endStructureMarker}");
+            if (endStructureMarker != "ENDSTRUCTURE")
+            {
+                throw new InvalidDataException("Invalid file structure");
+            }
 
-                    //Depuración
-                    Console.WriteLine($"Longitud del archivo: {stream.Length}, Posición actual: {stream.Position}");
-        
-                    bool hasData = false; //<--- Se usa para poder devolver un mensaje indicando si se encontró o no información en la tabla actual.
-                    // Lee los datos de cada fila
-                    while (stream.Position < stream.Length)
+            // Construye el encabezado del resultado
+            resultBuilder.AppendLine(string.Join(",", columns.Select(c => c.Name)));
+
+            // Buscar el inicio de los datos
+            string dataStartMarker = reader.ReadString();
+            Console.WriteLine($"Data start marker: {dataStartMarker}");
+            if (dataStartMarker != "DATASTART")
+            {
+                throw new InvalidDataException("Marca donde comienza la información no encontrada");
+            }
+
+            Console.WriteLine($"Longitud del archivo: {stream.Length}, Posición actual: {stream.Position}");
+
+            int rowCount = 0;
+            // Lee los datos de cada fila
+            while (stream.Position < stream.Length)
+            {
+                StringBuilder rowBuilder = new StringBuilder();
+                try
+                {
+                    foreach (var column in columns)
                     {
-                        hasData = true;
-                        StringBuilder ConstructorFila = new StringBuilder(); //<--- Encargado de guardar todos los datos de las filas en las tablas.
-                        foreach (var column in columns)
+                        object value = null;
+                        switch (column.DataType)
                         {
-                            // Leer el valor según el tipo de dato, lo vamos agregando 
-                            switch (column.DataType)
-                            {
-                                case "INTEGER":
-                                    ConstructorFila.Append(reader.ReadInt32());
-                                    break;
-                                case "DOUBLE":
-                                    ConstructorFila.Append(reader.ReadDouble());
-                                    break;
-                                case "DATETIME":
-                                    long ticks = reader.ReadInt64();
-                                    DateTime dateTime = new DateTime(ticks);
-                                    ConstructorFila.Append(dateTime.ToString("yyyy-MM-dd HH:mm:ss"));
-                                    break;
-                                default: // VARCHAR para los Nombres y Apellidos en caso de...
-                                    int length = reader.ReadInt32();
-                                    ConstructorFila.Append(new string(reader.ReadChars(length)));
-                                    break;
-                            }
-                            ConstructorFila.Append(",");
+                            case "INTEGER":
+                                value = reader.ReadInt32();
+                                break;
+                            case "DOUBLE":
+                                value = reader.ReadDouble();
+                                break;
+                            case "DATETIME":
+                                long ticks = reader.ReadInt64();
+                                value = new DateTime(ticks).ToString("yyyy-MM-dd HH:mm:ss");
+                                break;
+                            default: // VARCHAR
+                                int length = reader.ReadInt32();
+                                if (length > 0)
+                                {
+                                    value = new string(reader.ReadChars(length)).Trim();
+                                }
+                                break;
                         }
-                        resultBuilder.AppendLine(ConstructorFila.ToString().TrimEnd(','));
+                        Console.WriteLine($"Read value for {column.Name}: {value}");
+                        rowBuilder.Append(value).Append(",");
                     }
-
-                    // Verifica si se encontraron datos
-                    if (!hasData)
-                    {
-                        Console.WriteLine("La tabla está vacía.");
-                        return (OperationStatus.Success, "La tabla está vacía.");
-                    }
-        
-                    Console.WriteLine("¡Operación SELECT ejecutada correctamente!");
-                    return (OperationStatus.Success, resultBuilder.ToString());
+                    string row = rowBuilder.ToString().TrimEnd(',');
+                    Console.WriteLine($"Row data: {row}");
+                    resultBuilder.AppendLine(row);
+                    rowCount++;
+                }
+                catch (EndOfStreamException)
+                {
+                    Console.WriteLine("Reached end of stream.");
+                    break;
                 }
             }
-            catch (Exception ex)
-            {
-                // Log de errores
-                Console.WriteLine($"Error reading file: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return (OperationStatus.Error, $"Error: {ex.Message}");
-            }
+
+            Console.WriteLine($"Total rows read: {rowCount}");
+            Console.WriteLine("¡Operación SELECT ejecutada correctamente!");
+            return (OperationStatus.Success, resultBuilder.ToString());
         }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error reading file: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        return (OperationStatus.Error, $"Error: {ex.Message}");
+    }
+}
         public OperationStatus CreateIndexes(string indexName, string tableName, string columnName, string indexType)
         {
             var CreateIndexesStoreOperation = new CreateIndexesStoreOperation(DataPath, Entities.ConfigPaths.SystemCatalogPath, RutaDeterminadaPorSet);

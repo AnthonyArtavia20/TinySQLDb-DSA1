@@ -107,5 +107,27 @@ namespace StoreDataManager.StoreOperations
                 }
                 return minValue;
             }
+
+            // Método de recorrido en orden PARA HACER PRUEBAS DE QUE SI INSERTA BIEN
+            public void InOrderTraversal()
+            {
+                InOrderRecursive(actual);
+            }
+
+            // Recursivamente recorre el árbol en orden
+            private void InOrderRecursive(BSTNode? node)
+            {
+                if (node != null)
+                {
+                    // Primero recorre el subárbol izquierdo
+                    InOrderRecursive(node.Left);
+
+                    // Luego visita el nodo actual
+                    Console.WriteLine($"Clave: {node.Key}, Posición: {node.Position}");
+
+                    // Luego recorre el subárbol derecho
+                    InOrderRecursive(node.Right);
+                }
+            }
     }
 }
