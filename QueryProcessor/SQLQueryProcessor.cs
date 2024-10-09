@@ -106,7 +106,6 @@ namespace QueryProcessor
                 {
                     throw new Exception("Error al parsear la sentencia UPDATE. La sintaxis es incorrecta.");
                 }
-
                 // Extract table name
                 string tableName = parts[0].Trim();
 
@@ -136,6 +135,51 @@ namespace QueryProcessor
                 // Puedes llamar a la lógica de la operación Update desde aquí
                 var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue);
                 return (result, string.Empty);
+            }
+            // Delete implementacion...
+            if (sentence.StartsWith("DELETE"))
+            {
+                const string deleteKeyword = "DELETE FROM";
+                string whereClause = null;
+                string columnName = null;
+                string conditionValue = null;
+
+                var tableToDeleteFrom = sentence.Substring(deleteKeyword.Length).Trim();
+
+                // Comprobar si hay una cláusula WHERE
+                if (tableToDeleteFrom.Contains("WHERE"))
+                {
+                    
+                    var parts = tableToDeleteFrom.Split(new[] { "WHERE" }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length < 2){
+                        throw new InvalidOperationException("La consulta DELETE no tiene una cláusula WHERE válida.");
+
+                    }
+                    
+                    tableToDeleteFrom = parts[0].Trim();  // Nombre de la tabla
+                    whereClause = parts[1].Trim();  // La cláusula WHERE
+
+                    // Procesar la cláusula WHERE
+                    var whereParts = whereClause.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (whereParts.Length == 2)
+                    {
+                        columnName = whereParts[0].Trim();  // Nombre de la columna
+                        conditionValue = whereParts[1].Trim();  // Valor de la condición
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Formato inválido en la cláusula WHERE.");
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(tableToDeleteFrom))
+                {
+                    throw new InvalidOperationException("Debe ingresar un nombre de una tabla para eliminar.");
+                }
+
+                // Ejecutamos la operación DELETE
+                var result = new Delete().Execute(tableToDeleteFrom, columnName, conditionValue);
+                return result;
             }
             else
             {

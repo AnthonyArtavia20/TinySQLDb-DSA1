@@ -1,32 +1,7 @@
-CREATE DATABASE UNIVERSIDAD;
 SET UNIVERSIDAD;
-CREATE TABLE Empleados (
-    ID INTEGER NOT NULL PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    FechaContratacion DATETIME,
-    Salario DOUBLE
-);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Joseph', 'Piedra', '2022-03-31 12:23:43', 2308.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (2, 'Nacho', 'Astua', '2022-03-31 12:23:43', 56308.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (3, 'David', 'Guitiérrez', '2022-03-31 12:23:43', 3308.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (4, 'Jarot', 'Gómez', '2022-03-31 12:23:43', 72308.00);
 
 SELECT * FROM Empleados;
 
+DELETE FROM Empleados WHERE Salario == 3000;
 
-CREATE TABLE Estudiantes (
-    ID INTEGER NOT NULL PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    FechaDeIngreso DATETIME,
-    Beca DOUBLE
-);
-
-DROP TABLE Estudiantes;
-
-UPDATE Empleados SET Nombre = "Anthony" WHERE ID == 1;
-UPDATE Empleados SET Apellido = "Artavia" WHERE ID == 1;
-UPDATE Empleados SET Salario = "1111" WHERE ID == 1;
-
-SELECT * FROM Empleados;
+SELECT * FROM Empleados;

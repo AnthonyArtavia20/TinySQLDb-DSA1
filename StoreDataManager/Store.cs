@@ -83,13 +83,18 @@ namespace StoreDataManager
             var createTableOperation = new CreateTableOperation(DataPath, Entities.ConfigPaths.SystemCatalogPath, currentDatabaseId);
             return createTableOperation.Execute(tableName, columns, RutaDeterminadaPorSet);
         }
-
+        // Update implementacion 
         public OperationStatus Update(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue) //Operación para poder crear tablas vacías pero con encabezados a los cuales agregarles datos.
         {
             var updateOperation = new UpdateOperation(RutaDeterminadaPorSet);
             return updateOperation.Execute(tableName,columnToUpdate, newValue, whereColumn, whereValue);
         }
-
+        // Delete implementacion 
+        public OperationStatus Delete(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue)  
+        {
+            var DeleteOperation = new DeleteOperation();
+            return DeleteOperation.Execute(tableName,columnToUpdate, newValue, whereColumn, whereValue);
+        }
         public OperationStatus InsertIntoTable(string tableName, string[] columnas, string[] valores) //Permite insertar los datos en alguna tabla
         {//pero solo si se verificaron que dichos datos cumplen con la estructura esperada, esto se logra comparar en la clase dedicada para la operación
             // Insert.cs en Operations en QueryProcessor.
@@ -151,7 +156,6 @@ namespace StoreDataManager
                 Console.WriteLine($"Columna agregada: Name={column.Name}, Type={column.DataType}, Nullable={column.IsNullable}, PrimaryKey={column.IsPrimaryKey}, VarcharLength={column.VarcharLength}");
                 columns.Add(column);
             }
-
             // Verificar la marca de fin de estructura
             string endStructureMarker = reader.ReadString();
             Console.WriteLine($"End structure marker: {endStructureMarker}");
@@ -159,10 +163,8 @@ namespace StoreDataManager
             {
                 throw new InvalidDataException("Invalid file structure");
             }
-
             // Construye el encabezado del resultado
             resultBuilder.AppendLine(string.Join(",", columns.Select(c => c.Name)));
-
             // Buscar el inicio de los datos
             string dataStartMarker = reader.ReadString();
             Console.WriteLine($"Data start marker: {dataStartMarker}");
