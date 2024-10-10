@@ -389,17 +389,17 @@ namespace StoreDataManager
             var CreateIndexesStoreOperation = new CreateIndexesStoreOperation(DataPath, Entities.ConfigPaths.SystemCatalogPath, RutaDeterminadaPorSet);
             return CreateIndexesStoreOperation.Execute(indexName, tableName, columnName, indexType);
         }
-        public (OperationStatus Status, string Data) DeleteWhere(string tableName, string columnName, string conditionValue)
+        public (OperationStatus Status, string Data) DeleteWhere(string tableName, string columnName = null, string conditionValue = null)
         {
-            //Genera la ruta de la tabla donde ejecutar los cambios
+            // Genera la ruta de la tabla donde ejecutar los cambios
             string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName + ".Table");
 
             if (!File.Exists(fullPath))
             {
                 return (OperationStatus.Error, $"Error: La tabla '{tableName}' no existe.");
-            }   
+            }
 
-            //Crea una tabla temporal para almacenar los datos sin las filas que coincidan con la condición
+            // Crea una tabla temporal para almacenar los datos (si es necesario)
             string tempFilePath = Path.Combine(RutaDeterminadaPorSet, tableName + "_temp.Table");
 
             try
@@ -433,6 +433,7 @@ namespace StoreDataManager
                         };
                         columns.Add(column);
                     }
+
                     // Verificar la marca de fin de estructura
                     string endStructureMarker = reader.ReadString();
                     if (endStructureMarker != "ENDSTRUCTURE")
@@ -450,7 +451,7 @@ namespace StoreDataManager
                         writer.Write(column.DataType);
                         writer.Write(column.IsNullable);
                         writer.Write(column.IsPrimaryKey);
-
+                        
                         // Manejar el valor nullable de VarcharLength
                         if (column.VarcharLength.HasValue)
                         {
@@ -463,7 +464,7 @@ namespace StoreDataManager
                     }
                     writer.Write("ENDSTRUCTURE");
 
-                        // Buscar el inicio de los datos
+                    // Buscar el inicio de los datos
                     string dataStartMarker = reader.ReadString();
                     if (dataStartMarker != "DATASTART")
                     {
@@ -473,6 +474,21 @@ namespace StoreDataManager
                     // Escribir el inicio de los datos en el archivo temporal
                     writer.Write("DATASTART");
 
+                    // Si no se especifica una columna ni una condición, eliminar todos los registros
+                    if (string.IsNullOrEmpty(columnName) && string.IsNullOrEmpty(conditionValue))
+                    {
+                        // No escribimos ningún dato al archivo temporal, eliminando así todas las filas
+                        stream.Close();  // Cerrar los archivos para evitar errores al reemplazar
+                        tempStream.Close();
+
+                        // Reemplazamos el archivo original por el temporal (sin datos)
+                        File.Delete(fullPath);
+                        File.Move(tempFilePath, fullPath);
+
+                        return (OperationStatus.Success, "Todos los registros fueron eliminados correctamente.");
+                    }
+
+                    // En caso de que exista una condición, procedemos a eliminar basados en esa condición
                     int columnIndex = columns.FindIndex(c => c.Name == columnName);
                     if (columnIndex == -1)
                     {
@@ -491,7 +507,6 @@ namespace StoreDataManager
                             switch (columns[i].DataType)
                             {
                                 case "INTEGER":
-                                        
                                     rowData[i] = reader.ReadInt32().ToString();
                                     break;
                                 case "DOUBLE":
@@ -540,7 +555,8 @@ namespace StoreDataManager
                         }
                     }
                 }
-                    // Reemplazamos el archivo original por el temporal
+
+                // Reemplazamos el archivo original por el temporal
                 File.Delete(fullPath);
                 File.Move(tempFilePath, fullPath);
 

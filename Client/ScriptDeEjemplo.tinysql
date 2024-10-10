@@ -2,6 +2,6 @@ SET UNIVERSIDAD;
 
 SELECT * FROM Empleados;
 
-DELETE FROM Empleados WHERE Salario == 3000;
+DELETE FROM Empleados WHERE Salario == 2308;
 
 SELECT * FROM Empleados;
