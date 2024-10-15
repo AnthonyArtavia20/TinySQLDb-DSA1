@@ -1,19 +1,36 @@
 using Entities;
+using System;
 using System.IO;
+using System.Collections.Generic;
 
 namespace StoreDataManager.StoreOperations
 {
-     public class DeleteOperation
+    public class DeleteOperation
     {
         private readonly string dataPath;
-    
+
         public DeleteOperation(string dataPath)
         {
             this.dataPath = dataPath;
         }
-        public (OperationStatus Status, string Data) Execute(string tableName, string columnName = null, string conditionValue = null)
+
+        // Función genérica para comparar valores con el operador dado
+        private bool CompareValues<T>(T columnValue, T conditionValue, string operatorValue) where T : IComparable
         {
-            
+            switch (operatorValue)
+            {
+                case "==": return columnValue.CompareTo(conditionValue) == 0;
+                case "!=": return columnValue.CompareTo(conditionValue) != 0;
+                case "<": return columnValue.CompareTo(conditionValue) < 0;
+                case ">": return columnValue.CompareTo(conditionValue) > 0;
+                case "<=": return columnValue.CompareTo(conditionValue) <= 0;
+                case ">=": return columnValue.CompareTo(conditionValue) >= 0;
+                default: throw new InvalidOperationException($"Operador no soportado: {operatorValue}");
+            }
+        }
+
+        public (OperationStatus Status, string Data) Execute(string tableName, string columnName = null, string conditionValue = null, string operatorValue = "==")
+        {
             // Genera la ruta de la tabla donde ejecutar los cambios
             string fullPath = Path.Combine(dataPath, tableName + ".Table");
 
@@ -74,15 +91,14 @@ namespace StoreDataManager.StoreOperations
                         writer.Write(column.DataType);
                         writer.Write(column.IsNullable);
                         writer.Write(column.IsPrimaryKey);
-                        
-                        // Manejar el valor nullable de VarcharLength
+
                         if (column.VarcharLength.HasValue)
                         {
                             writer.Write(column.VarcharLength.Value);  // Escribir el valor si no es null
                         }
                         else
                         {
-                            writer.Write(0);  // Puedes decidir un valor predeterminado o lanzar una excepción
+                            writer.Write(0);
                         }
                     }
                     writer.Write("ENDSTRUCTURE");
@@ -94,13 +110,11 @@ namespace StoreDataManager.StoreOperations
                         throw new InvalidDataException("Marca donde comienza la información no encontrada");
                     }
 
-                    // Escribir el inicio de los datos en el archivo temporal
                     writer.Write("DATASTART");
 
                     // Si no se especifica una columna ni una condición, eliminar todos los registros
                     if (string.IsNullOrEmpty(columnName) && string.IsNullOrEmpty(conditionValue))
                     {
-                        // No escribimos ningún dato al archivo temporal, eliminando así todas las filas
                         stream.Close();  // Cerrar los archivos para evitar errores al reemplazar
                         tempStream.Close();
 
@@ -147,11 +161,27 @@ namespace StoreDataManager.StoreOperations
                             }
                         }
 
-                        // Verificamos si la fila cumple con la condición para eliminar
-                        if (rowData[columnIndex] == conditionValue)
+                        // Convertir el valor de la columna y la condición al tipo adecuado
+                        object columnValue = rowData[columnIndex];
+                        object conditionParsedValue = conditionValue;
+                        switch (columns[columnIndex].DataType)
                         {
-                            matchCondition = true;  // Se omite esta fila
+                            case "INTEGER":
+                                columnValue = int.Parse(rowData[columnIndex]);
+                                conditionParsedValue = int.Parse(conditionValue);
+                                break;
+                            case "DOUBLE":
+                                columnValue = double.Parse(rowData[columnIndex]);
+                                conditionParsedValue = double.Parse(conditionValue);
+                                break;
+                            case "DATETIME":
+                                columnValue = DateTime.Parse(rowData[columnIndex]);
+                                conditionParsedValue = DateTime.Parse(conditionValue);
+                                break;
                         }
+
+                        // Verificamos si la fila cumple con la condición para eliminar
+                        matchCondition = CompareValues((IComparable)columnValue, (IComparable)conditionParsedValue, operatorValue);
 
                         // Escribimos la fila al archivo temporal solo si no coincide con la condición
                         if (!matchCondition)
@@ -189,6 +219,6 @@ namespace StoreDataManager.StoreOperations
                 return (OperationStatus.Error, ex.Message);
             }
         }
-    }     
+    }
 }
-    
+  

@@ -1,3 +1,28 @@
+CREATE DATABASE UNIVERSIDAD;
+SET UNIVERSIDAD;
+
+CREATE TABLE Empleados (
+    ID INTEGER NOT NULL PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    Apellido VARCHAR(50) NOT NULL,
+    FechaContratacion DATETIME,
+    Salario DOUBLE
+);
+
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, 'Joseph', 'Piedra', '2022-03-31 12:23:43', 2308.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (2, 'Maria', 'Rodriguez', '2021-08-15 09:45:30', 2500.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (3, 'Carlos', 'Jimenez', '2019-06-20 14:12:50', 1800.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (4, 'Ana', 'Lopez', '2020-01-11 11:22:33', 3000.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (5, 'Luis', 'Martinez', '2018-02-28 16:45:00', 2700.00);
+
+CREATE TABLE Estudiantes (
+    ID INTEGER NOT NULL PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    Apellido VARCHAR(50) NOT NULL,
+    FechaDeIngreso DATETIME,
+    Beca DOUBLE
+);
+
 SET UNIVERSIDAD;
 
 SELECT * FROM Empleados;

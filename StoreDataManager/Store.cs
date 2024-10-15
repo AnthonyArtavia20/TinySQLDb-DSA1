@@ -159,20 +159,17 @@ namespace StoreDataManager
                     
                     // Construir el encabezado del resultado
                     resultBuilder.AppendLine(string.Join(",", columns.Select(c => c.Name)));
-
                     string dataStartMarker = reader.ReadString();
                     if (dataStartMarker != "DATASTART")
                     {
                         throw new InvalidDataException("Marca donde comienza la información no encontrada");
                     }
-                    
                     // Buscar el índice de la columna
                     int columnIndex = columns.FindIndex(c => c.Name == columnName);
                     if (columnIndex == -1)
                     {
                         return (OperationStatus.Error, $"Error: La columna '{columnName}' no existe en la tabla '{tableName}'.");
                     }
-
                     bool hasData = false;
                     // Leer los datos y comparar con la condición
                     while (stream.Position < stream.Length)
@@ -201,22 +198,18 @@ namespace StoreDataManager
                                     break;
                             }
                         }
-
                         // Realizar la comparación dependiendo del tipo de dato y el operador
                         bool conditionMet = EvaluateCondition(columns[columnIndex].DataType, rowData[columnIndex], conditionValue, operatorValue);
-
                         if (conditionMet)
                         {
                             hasData = true;
                             resultBuilder.AppendLine(string.Join(",", rowData));
                         }
                     }
-
                     if (!hasData)
                     {
                         return (OperationStatus.Success, "No se encontraron datos que coincidan con la condición.");
                     }
-
                     return (OperationStatus.Success, resultBuilder.ToString());
                 }
             }
@@ -226,7 +219,6 @@ namespace StoreDataManager
                 return (OperationStatus.Error, $"Error: {ex.Message}");
             }
         }
-
         // Función para evaluar las condiciones de la cláusula WHERE
         private bool EvaluateCondition(string dataType, string columnValue, string conditionValue, string operatorValue)
         {
@@ -236,27 +228,22 @@ namespace StoreDataManager
                     int intColumnValue = int.Parse(columnValue);
                     int intConditionValue = int.Parse(conditionValue);
                     return CompareValues(intColumnValue, intConditionValue, operatorValue);
-
                 case "DOUBLE":
                     double doubleColumnValue = double.Parse(columnValue);
                     double doubleConditionValue = double.Parse(conditionValue);
                     return CompareValues(doubleColumnValue, doubleConditionValue, operatorValue);
-
                 case "DATETIME":
                     DateTime dateTimeColumnValue = DateTime.Parse(columnValue);
                     DateTime dateTimeConditionValue = DateTime.Parse(conditionValue);
                     return CompareValues(dateTimeColumnValue, dateTimeConditionValue, operatorValue);
-
                 default: // Para strings y otros tipos
                     return CompareValues(columnValue, conditionValue, operatorValue);
             }
         }
-
         // Función genérica para comparar valores con el operador dado
         private bool CompareValues<T>(T columnValue, T conditionValue, string operatorValue) where T : IComparable
         {
             switch (operatorValue)
-
             //Se comparan los valores y se devuelve un booleano dependiendo del resultado de la comparación.
             //Si da 0 significa que son iguales, si da -1 significa que el valor de la columna es menor al valor de la condición, si da 1 significa que el valor de la columna es mayor al valor de la condición.
             {
@@ -274,18 +261,15 @@ namespace StoreDataManager
             // Prepara el nombre completo del archivo de la tabla
             string tableName = NombreDeTableASeleccionar + ".Table"; //Se preapara la tabla a leer.
             string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName);//Se combina toda la ruta
-
             // Log para depuración
             Console.WriteLine($"Attempting to select from table: {tableName}");
             Console.WriteLine($"Full path: {fullPath}");
-
             // Verifica si el archivo de la tabla existe.
             if (!File.Exists(fullPath))//Prevención de errores, la tabla no existe.
             {
                 Console.WriteLine($"Error: The table file '{fullPath}' does not exist.");
                 return (OperationStatus.Error, $"Error: La tabla '{NombreDeTableASeleccionar}' no existe.");
             }
-        
             StringBuilder resultBuilder = new StringBuilder(); //Creamos una string mutable que pueda albergar toda la estructura que contiene el archivo binario.
             try
             {
@@ -298,7 +282,6 @@ namespace StoreDataManager
                     {
                         throw new InvalidDataException("Formato de archivo inválido.");
                     }
-        
                     // Leer la estructura de la tabla
                     int columnCount = reader.ReadInt32();
                     List<ColumnDefinition> columns = new List<ColumnDefinition>();
