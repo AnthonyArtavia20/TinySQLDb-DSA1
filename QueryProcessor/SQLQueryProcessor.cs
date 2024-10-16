@@ -99,43 +99,112 @@ namespace QueryProcessor
             }
             if (sentence.StartsWith("UPDATE"))
             {
-                // Split the sentence into the relevant parts
+                // Dividir la sentencia en las partes relevantes
                 var parts = sentence.Split(new[] { "UPDATE ", " SET ", " WHERE " }, StringSplitOptions.RemoveEmptyEntries);
 
-                if (parts.Length != 3)
+                // Asegurarse de que SET esté presente
+                if (parts.Length < 2 || parts.Length > 3)
                 {
                     throw new Exception("Error al parsear la sentencia UPDATE. La sintaxis es incorrecta.");
                 }
 
-                // Extract table name
+                // Extraer el nombre de la tabla
                 string tableName = parts[0].Trim();
 
-                // Split the SET clause into column and value
+                // Dividir la cláusula SET en columna y valor
                 var setClause = parts[1].Split(new[] { " = " }, StringSplitOptions.RemoveEmptyEntries);
                 if (setClause.Length != 2)
                 {
                     throw new Exception("Error al parsear la cláusula SET.");
                 }
                 string columnToUpdate = setClause[0].Trim();
-                string newValue = setClause[1].Trim().Trim('"');  // Remove extra quotes around the value
+                string newValue = setClause[1].Trim().Trim('"');  // Eliminar comillas alrededor del valor
 
-                // Split the WHERE clause into column and value
-                var whereClause = parts[2].Split(new[] { " == " }, StringSplitOptions.RemoveEmptyEntries);
-                if (whereClause.Length != 2)
+                // Verificar si hay cláusula WHERE
+                string? whereColumn = null;
+                string? whereValue = null;
+                string? operatorValue = null;
+
+                if (parts.Length == 3)  // Hay WHERE, si hay 3 "operandos" quiere decir que el WHERE va incluido.
                 {
-                    throw new Exception("Error al parsear la cláusula WHERE.");
+                    // Detectar el operador en la cláusula WHERE
+                    string[] operators = new[] { "==", "!=", ">", "<", ">=", "<=" };
+                    operatorValue = operators.FirstOrDefault(op => parts[2].Contains(op));
+
+                    if (operatorValue == null)
+                    {
+                        throw new Exception("Operador no soportado en la cláusula WHERE.");
+                    }
+
+                    // Dividir la cláusula WHERE usando el operador detectado
+                    var whereClause = parts[2].Split(new[] { operatorValue }, StringSplitOptions.RemoveEmptyEntries);
+                    if (whereClause.Length != 2)
+                    {
+                        throw new Exception("Error al parsear la cláusula WHERE.");
+                    }
+
+                    whereColumn = whereClause[0].Trim();
+                    whereValue = whereClause[1].Trim();
                 }
-                string whereColumn = whereClause[0].Trim();
-                string whereValue = whereClause[1].Trim();
 
-                // Now you have all the parts you need
                 Console.WriteLine($"Tabla: {tableName}, Columna a actualizar: {columnToUpdate}, Nuevo valor: {newValue}");
-                Console.WriteLine($"Columna WHERE: {whereColumn}, Valor WHERE: {whereValue}");
-                Console.WriteLine($"Valores solos para verlos: {tableName},{columnToUpdate},{newValue},{whereColumn},{whereValue}");
+                if (whereColumn != null)
+                {
+                    Console.WriteLine($"Columna WHERE: {whereColumn}, Valor WHERE: {whereValue}, Operador: {operatorValue}");
+                }
+                else
+                {
+                    Console.WriteLine("Actualizando toda la columna, no se especificó WHERE.");
+                }
 
-                // Puedes llamar a la lógica de la operación Update desde aquí
-                var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue);
+                // Llamar a la operación Update con el operador incluido
+                var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
                 return (result, string.Empty);
+            }
+            // Delete implementacion...
+            if (sentence.StartsWith("DELETE"))
+            {
+                const string deleteKeyword = "DELETE FROM";
+                string? whereClause = null;
+                string? columnName = null;
+                string? conditionValue = null;
+
+                var tableToDeleteFrom = sentence.Substring(deleteKeyword.Length).Trim();
+
+                // Comprobar si hay una cláusula WHERE
+                if (tableToDeleteFrom.Contains("WHERE"))
+                {
+                    
+                    var parts = tableToDeleteFrom.Split(new[] { "WHERE" }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length < 2)
+                    {
+                        throw new InvalidOperationException("La consulta DELETE no tiene una cláusula WHERE válida.");
+                    }
+                    
+                    tableToDeleteFrom = parts[0].Trim();  // Nombre de la tabla
+                    whereClause = parts[1].Trim();  // La cláusula WHERE
+
+                    // Procesar la cláusula WHERE
+                    var whereParts = whereClause.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (whereParts.Length == 2)
+                    {
+                        columnName = whereParts[0].Trim();  // Nombre de la columna
+                        conditionValue = whereParts[1].Trim();  // Valor de la condición
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Formato inválido en la cláusula WHERE.");
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(tableToDeleteFrom))
+                {
+                    throw new InvalidOperationException("Debe ingresar un nombre de una tabla para eliminar.");
+                }
+
+                // Ejecutamos la operación DELETE
+                var result = new Delete().Execute(tableToDeleteFrom, columnName, conditionValue);
+                return result;
             }
             else
             {

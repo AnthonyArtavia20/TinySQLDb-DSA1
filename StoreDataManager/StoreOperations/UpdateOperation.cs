@@ -1,5 +1,4 @@
-using Entities;
-using System.IO;
+using Entities; //Con la finalidad de usar los archivos de configuración
 
 namespace StoreDataManager.StoreOperations
 {
@@ -7,16 +6,30 @@ namespace StoreDataManager.StoreOperations
     {
         private readonly string dataPath;
     
-        public UpdateOperation(string dataPath)
+        public UpdateOperation(string dataPath) //Constructor de la clase
         {
             this.dataPath = dataPath;
         }
 
-        public OperationStatus Execute(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue)
+        private bool CompareValues<T>(T columnValue, T conditionValue, string operatorValue) where T : IComparable 
+        {//Método genérico para poder comparar los distintos comparadores
+            switch (operatorValue)
+            {
+                case "==": return columnValue.CompareTo(conditionValue) == 0;
+                case "!=": return columnValue.CompareTo(conditionValue) != 0;
+                case "<": return columnValue.CompareTo(conditionValue) < 0;
+                case ">": return columnValue.CompareTo(conditionValue) > 0;
+                case "<=": return columnValue.CompareTo(conditionValue) <= 0;
+                case ">=": return columnValue.CompareTo(conditionValue) >= 0;
+                default: throw new InvalidOperationException($"Operador no soportado: {operatorValue}");
+            }
+        }
+
+        public OperationStatus Execute(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue, string operatorValue)
         {
             string tableFilePath = Path.Combine(dataPath, tableName + ".Table");
 
-            if (!File.Exists(tableFilePath))
+            if (!File.Exists(tableFilePath)) //Se comprueba que la tabla sobre la que se quiere actualizar, exista.
             {
                 Console.WriteLine($"Error: La tabla '{tableName}' no existe.");
                 return OperationStatus.Error;
@@ -64,7 +77,7 @@ namespace StoreDataManager.StoreOperations
                     string endStructureMarker = reader.ReadString();
                     if (endStructureMarker != "ENDSTRUCTURE")
                     {
-                        throw new InvalidDataException("Invalid file structure");
+                        throw new InvalidDataException("Invalid file structure"); //En caso de que la tabla tenga un formato de encabezado inválido
                     }
 
                     // Buscar el inicio de los datos
@@ -91,7 +104,15 @@ namespace StoreDataManager.StoreOperations
                 int updatedCount = 0;
                 for (int i = 0; i < rows.Count; i++)
                 {
-                    if (rows[i][whereColumnIndex].ToString() == whereValue)
+                    bool HayWhere = true;  // Si no hay WHERE, se actualizan todas las filas
+
+                    if (operatorValue != null)  // Hay una condición WHERE, si es diferente de null.
+                    {
+                        //Se le otorga un valor diferente 
+                        HayWhere = CompareValues((IComparable)rows[i][whereColumnIndex], (IComparable)ConvertToType(whereValue, columns[whereColumnIndex].DataType), operatorValue);
+                    }
+
+                    if (HayWhere)
                     {
                         rows[i][columnToUpdateIndex] = ConvertToType(newValue, columns[columnToUpdateIndex].DataType);
                         updatedCount++;
@@ -157,6 +178,7 @@ namespace StoreDataManager.StoreOperations
             }
         }
 
+        //Objetivo: Leer los valores actuales del documento/archivo.
         private object ReadValue(BinaryReader reader, string dataType, int varcharLength)
         {
             switch (dataType)
@@ -173,6 +195,7 @@ namespace StoreDataManager.StoreOperations
             }
         }
 
+        //Permite escribir los valores en el archivo.
         private void WriteValue(BinaryWriter writer, object value, string dataType, int varcharLength)
         {
             switch (dataType)
