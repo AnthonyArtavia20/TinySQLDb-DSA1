@@ -84,7 +84,7 @@ namespace StoreDataManager
             return createTableOperation.Execute(tableName, columns, RutaDeterminadaPorSet);
         }
         // Update implementacion 
-        public OperationStatus Update(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue) //Operación para poder crear tablas vacías pero con encabezados a los cuales agregarles datos.
+        public OperationStatus Update(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue, string operatorValue)
         {
             var updateOperation = new UpdateOperation(RutaDeterminadaPorSet);
             return updateOperation.Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
@@ -94,12 +94,6 @@ namespace StoreDataManager
         {
             var DeleteOperation = new DeleteOperation(RutaDeterminadaPorSet);
             return DeleteOperation.Execute(tableName, columnName, conditionValue);
-        }
-         public (OperationStatus, String) DeleteWhere(string tableName, string columnName, string conditionValue)
-        {
-            var DeleteOperation = new DeleteOperation(RutaDeterminadaPorSet);
-            return DeleteOperation.Execute(tableName, columnName, conditionValue);
-
         }
         public OperationStatus InsertIntoTable(string tableName, string[] columnas, string[] valores) //Permite insertar los datos en alguna tabla
         {//pero solo si se verificaron que dichos datos cumplen con la estructura esperada, esto se logra comparar en la clase dedicada para la operación

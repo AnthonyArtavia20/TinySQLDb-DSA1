@@ -18,13 +18,6 @@ INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES 
 
 SELECT * FROM Empleados;
 
-SET UNIVERSIDAD;
-
-SELECT * FROM Empleados;
-
-DELETE FROM Empleados;
-
-SELECT * FROM Empleados;
 UPDATE Empleados SET Nombre = "Anthony" WHERE Nombre == Carlos;
 
 SELECT * FROM Empleados;

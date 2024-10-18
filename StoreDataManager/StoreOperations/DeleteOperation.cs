@@ -1,7 +1,4 @@
 using Entities;
-using System;
-using System.IO;
-using System.Collections.Generic;
 
 namespace StoreDataManager.StoreOperations
 {
@@ -221,4 +218,3 @@ namespace StoreDataManager.StoreOperations
         }
     }
 }
-  
