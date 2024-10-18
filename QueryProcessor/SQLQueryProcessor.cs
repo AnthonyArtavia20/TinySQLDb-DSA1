@@ -1,4 +1,5 @@
-﻿using Entities;
+﻿using System.Text.RegularExpressions;
+using Entities;
 using QueryProcessor.Exceptions;
 using QueryProcessor.Operations;
 
@@ -75,7 +76,12 @@ namespace QueryProcessor
             {
                 // Se parsea la instrucción completa con el objetivo de obtener la información deseada para crear el índice.
                 // Ajuste de Split para evitar problemas con los delimitadores
-                var parts = sentence.Split(new[] { "CREATE INDEX ", " ON ", "(", ")", " OF TYPE " }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Se agregó esto para evitar dobles espacios en blanco en la entrada, daba errores para captar el tipo de árbol.
+                sentence = Regex.Replace(sentence, @"\s+", " ");
+                
+                // Realizar el split asegurando que los delimitadores se mantienen correctos
+                var parts = sentence.Split(new[] { "CREATE INDEX ", " ON ", "(", ")", " OF TYPE ", ";" }, StringSplitOptions.RemoveEmptyEntries);
             
                 if (parts.Length != 4)
                 {
@@ -87,62 +93,81 @@ namespace QueryProcessor
                 string columnNameKeyValue = parts[2].Trim(); // Aquí se obtiene la columna clave (debería ser 'ID o primaryKey')
                 string indexType = parts[3].Trim(); // Aquí se obtiene el tipo de índice (BTREE o BST)
             
-                // Verificar que el tipo de índice sea válido
-                if (indexType != "BTREE" && indexType != "BST")
-                {
-                    throw new Exception("Tipo de índice no válido. Use 'BTREE' o 'BST'.");
-                }
-            
                 //Se pasan todos los datos para verificar si la tabla, columnas etc... existen.
                 var result = new CreateIndexes().Execute(indexName, tableName, columnNameKeyValue, indexType);
                 return (result, string.Empty); //Se devuelve el resultado de la operación.
             }
             if (sentence.StartsWith("UPDATE"))
             {
-                // Split the sentence into the relevant parts
+                // Dividir la sentencia en las partes relevantes
                 var parts = sentence.Split(new[] { "UPDATE ", " SET ", " WHERE " }, StringSplitOptions.RemoveEmptyEntries);
 
-                if (parts.Length != 3)
+                // Asegurarse de que SET esté presente
+                if (parts.Length < 2 || parts.Length > 3)
                 {
                     throw new Exception("Error al parsear la sentencia UPDATE. La sintaxis es incorrecta.");
                 }
-                // Extract table name
+
+                // Extraer el nombre de la tabla
                 string tableName = parts[0].Trim();
 
-                // Split the SET clause into column and value
+                // Dividir la cláusula SET en columna y valor
                 var setClause = parts[1].Split(new[] { " = " }, StringSplitOptions.RemoveEmptyEntries);
                 if (setClause.Length != 2)
                 {
                     throw new Exception("Error al parsear la cláusula SET.");
                 }
                 string columnToUpdate = setClause[0].Trim();
-                string newValue = setClause[1].Trim().Trim('"');  // Remove extra quotes around the value
+                string newValue = setClause[1].Trim().Trim('"');  // Eliminar comillas alrededor del valor
 
-                // Split the WHERE clause into column and value
-                var whereClause = parts[2].Split(new[] { " == " }, StringSplitOptions.RemoveEmptyEntries);
-                if (whereClause.Length != 2)
+                // Verificar si hay cláusula WHERE
+                string? whereColumn = null;
+                string? whereValue = null;
+                string? operatorValue = null;
+
+                if (parts.Length == 3)  // Hay WHERE, si hay 3 "operandos" quiere decir que el WHERE va incluido.
                 {
-                    throw new Exception("Error al parsear la cláusula WHERE.");
+                    // Detectar el operador en la cláusula WHERE
+                    string[] operators = new[] { "==", "!=", ">", "<", ">=", "<=" };
+                    operatorValue = operators.FirstOrDefault(op => parts[2].Contains(op));
+
+                    if (operatorValue == null)
+                    {
+                        throw new Exception("Operador no soportado en la cláusula WHERE.");
+                    }
+
+                    // Dividir la cláusula WHERE usando el operador detectado
+                    var whereClause = parts[2].Split(new[] { operatorValue }, StringSplitOptions.RemoveEmptyEntries);
+                    if (whereClause.Length != 2)
+                    {
+                        throw new Exception("Error al parsear la cláusula WHERE.");
+                    }
+
+                    whereColumn = whereClause[0].Trim();
+                    whereValue = whereClause[1].Trim();
                 }
-                string whereColumn = whereClause[0].Trim();
-                string whereValue = whereClause[1].Trim();
 
-                // Now you have all the parts you need
                 Console.WriteLine($"Tabla: {tableName}, Columna a actualizar: {columnToUpdate}, Nuevo valor: {newValue}");
-                Console.WriteLine($"Columna WHERE: {whereColumn}, Valor WHERE: {whereValue}");
-                Console.WriteLine($"Valores solos para verlos: {tableName},{columnToUpdate},{newValue},{whereColumn},{whereValue}");
+                if (whereColumn != null)
+                {
+                    Console.WriteLine($"Columna WHERE: {whereColumn}, Valor WHERE: {whereValue}, Operador: {operatorValue}");
+                }
+                else
+                {
+                    Console.WriteLine("Actualizando toda la columna, no se especificó WHERE.");
+                }
 
-                // Puedes llamar a la lógica de la operación Update desde aquí
-                var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue);
+                // Llamar a la operación Update con el operador incluido
+                var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
                 return (result, string.Empty);
             }
             // Delete implementacion...
             if (sentence.StartsWith("DELETE"))
             {
                 const string deleteKeyword = "DELETE FROM";
-                string whereClause = null;
-                string columnName = null;
-                string conditionValue = null;
+                string? whereClause = null;
+                string? columnName = null;
+                string? conditionValue = null;
 
                 var tableToDeleteFrom = sentence.Substring(deleteKeyword.Length).Trim();
 
@@ -151,9 +176,9 @@ namespace QueryProcessor
                 {
                     
                     var parts = tableToDeleteFrom.Split(new[] { "WHERE" }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length < 2){
+                    if (parts.Length < 2)
+                    {
                         throw new InvalidOperationException("La consulta DELETE no tiene una cláusula WHERE válida.");
-
                     }
                     
                     tableToDeleteFrom = parts[0].Trim();  // Nombre de la tabla

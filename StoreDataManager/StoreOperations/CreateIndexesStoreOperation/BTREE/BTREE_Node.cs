@@ -1,6 +1,6 @@
 namespace StoreDataManager.StoreOperations
 {
-     public class BTreeNode
+    public class BTreeNode
     {
         public int[] Keys; // Arreglo de claves del nodo
         public long[] Positions; // Arreglo de posiciones de los registros
@@ -9,7 +9,7 @@ namespace StoreDataManager.StoreOperations
         public bool IsLeaf; // Indica si el nodo es una hoja (no tiene hijos)
 
         // Constructor para inicializar un nodo B
-       public BTreeNode(int t, bool isLeaf)
+        public BTreeNode(int t, bool isLeaf)
         {
             this.IsLeaf = isLeaf; // Se asigna si es hoja
             this.Keys = new int[2 * t - 1]; // Tamaño del arreglo de claves

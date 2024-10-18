@@ -1,6 +1,6 @@
 namespace StoreDataManager.StoreOperations
 {
-    public class BinarySearchTree //Clase especializada para poder crear el índice de tipo BST
+    public class BinarySearchTree : InterfaceIndexStructure //Clase especializada para poder crear el índice de tipo BST
     {
         BSTNode? actual; //Es el punto de entrada o el primer nodo a partir del cual se realizan todas las 
         //operaciones de inserción, búsqueda y eliminación.

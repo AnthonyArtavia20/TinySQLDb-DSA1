@@ -87,7 +87,13 @@ namespace StoreDataManager
         public OperationStatus Update(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue) //Operación para poder crear tablas vacías pero con encabezados a los cuales agregarles datos.
         {
             var updateOperation = new UpdateOperation(RutaDeterminadaPorSet);
-            return updateOperation.Execute(tableName,columnToUpdate, newValue, whereColumn, whereValue);
+            return updateOperation.Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
+        }
+        //Ver esto de la clase String
+        public (OperationStatus, String) DeleteWhere(string tableName, string columnName, string conditionValue)
+        {
+            var DeleteOperation = new DeleteOperation(RutaDeterminadaPorSet);
+            return DeleteOperation.Execute(tableName, columnName, conditionValue);
         }
          public (OperationStatus, String) DeleteWhere(string tableName, string columnName, string conditionValue)
         {
