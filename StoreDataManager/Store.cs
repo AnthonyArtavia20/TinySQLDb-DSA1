@@ -1,4 +1,7 @@
-﻿using Entities;
+﻿//Última actualización 18/10/2024
+//11:20am
+
+using Entities;
 using System.Data;
 using System.Text;
 using StoreDataManager.StoreOperations;
