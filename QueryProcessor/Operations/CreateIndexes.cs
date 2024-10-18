@@ -4,7 +4,7 @@ using StoreDataManager.StoreOperations; //Para poder acceder a TableExist en Sto
 
 namespace QueryProcessor.Operations
 {
-    public class CreateIndexes
+    public class CreateIndexes //Aquí se hacen validaciones antes de crear el índice.
     {
         public OperationStatus Execute(string indexName, string tableName, string columnNameKeyValue, string indexType)
         {

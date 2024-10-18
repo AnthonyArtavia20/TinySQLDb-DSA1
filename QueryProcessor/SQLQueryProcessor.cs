@@ -1,4 +1,5 @@
-﻿using Entities;
+﻿using System.Text.RegularExpressions;
+using Entities;
 using QueryProcessor.Exceptions;
 using QueryProcessor.Operations;
 
@@ -75,7 +76,12 @@ namespace QueryProcessor
             {
                 // Se parsea la instrucción completa con el objetivo de obtener la información deseada para crear el índice.
                 // Ajuste de Split para evitar problemas con los delimitadores
-                var parts = sentence.Split(new[] { "CREATE INDEX ", " ON ", "(", ")", " OF TYPE " }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Se agregó esto para evitar dobles espacios en blanco en la entrada, daba errores para captar el tipo de árbol.
+                sentence = Regex.Replace(sentence, @"\s+", " ");
+                
+                // Realizar el split asegurando que los delimitadores se mantienen correctos
+                var parts = sentence.Split(new[] { "CREATE INDEX ", " ON ", "(", ")", " OF TYPE ", ";" }, StringSplitOptions.RemoveEmptyEntries);
             
                 if (parts.Length != 4)
                 {
@@ -86,12 +92,6 @@ namespace QueryProcessor
                 string tableName = parts[1].Trim(); // Aquí se obtiene el nombre de la tabla
                 string columnNameKeyValue = parts[2].Trim(); // Aquí se obtiene la columna clave (debería ser 'ID o primaryKey')
                 string indexType = parts[3].Trim(); // Aquí se obtiene el tipo de índice (BTREE o BST)
-            
-                // Verificar que el tipo de índice sea válido
-                if (indexType != "BTREE" && indexType != "BST")
-                {
-                    throw new Exception("Tipo de índice no válido. Use 'BTREE' o 'BST'.");
-                }
             
                 //Se pasan todos los datos para verificar si la tabla, columnas etc... existen.
                 var result = new CreateIndexes().Execute(indexName, tableName, columnNameKeyValue, indexType);

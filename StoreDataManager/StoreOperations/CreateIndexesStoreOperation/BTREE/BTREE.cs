@@ -1,6 +1,6 @@
 namespace StoreDataManager.StoreOperations
 {
-    public class BTree
+    public class BTree : InterfaceIndexStructure
     {
         private BTreeNode? root; // Nodo raíz del árbol B
         private int t; // Grado mínimo (número mínimo de hijos)
@@ -54,7 +54,30 @@ namespace StoreDataManager.StoreOperations
         {
             return root?.Search(key); // Llamamos al método de búsqueda del nodo raíz
         }
-    }
+        
+        public void InOrderTraversal()
+        {
+            if (root != null)
+            {
+                InOrderTraversalRecursive(root);
+            }
+        }
 
-    
+        private void InOrderTraversalRecursive(BTreeNode node)
+        {
+            int i;
+            for (i = 0; i < node.NumKeys; i++)
+            {
+                if (!node.IsLeaf)
+                {
+                    InOrderTraversalRecursive(node.Children[i]);
+                }
+                Console.WriteLine($"Clave: {node.Keys[i]}, Posición: {node.Positions[i]}");
+            }
+            if (!node.IsLeaf)
+            {
+                InOrderTraversalRecursive(node.Children[i]);
+            }
+        }
+    }
 }
