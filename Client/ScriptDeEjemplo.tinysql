@@ -11,15 +11,21 @@ CREATE TABLE Empleados (
 
 INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, Jose, Piedra, 2022-03-31 12:23:43, 2308.00);
 INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (2, Mari, Rodrig, 2021-08-15 09:45:30, 2500.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (3, Carl, Jimene, 2019-06-20 14:12:50, 1800.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (4, Anaa, Lopeza, 2020-01-11 11:22:33, 3000.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (5, Luis, Martin, 2018-02-28 16:45:00, 2700.00);
-
-
-SELECT * FROM Empleados;
-
-UPDATE Empleados SET Nombre = "Anthony" WHERE Nombre == Carlos;
-
-SELECT * FROM Empleados;
 
 CREATE INDEX Empleados_Id ON Empleados(ID) OF TYPE BST;
+
+CREATE DATABASE Ejemplo;
+SET Ejemplo;
+
+CREATE TABLE AMIGOS (
+    ID INTEGER NOT NULL PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    Apellido VARCHAR(50) NOT NULL,
+    FechaCuandoNosConcocimos DATETIME,
+    Dinero DOUBLE
+);
+
+INSERT INTO AMIGOS (ID, Nombre, Apellido, FechaCuandoNosConcocimos, Dinero) VALUES (1, Jeose, Piegdra, 2022-03-31 12:23:43, 2308.00);
+INSERT INTO AMIGOS (ID, Nombre, Apellido, FechaCuandoNosConcocimos, Dinero) VALUES (2, Mfari, Roddrig, 2021-08-15 09:45:30, 2500.00);
+
+CREATE INDEX Amigos_Id ON AMIGOS(ID) OF TYPE BST;

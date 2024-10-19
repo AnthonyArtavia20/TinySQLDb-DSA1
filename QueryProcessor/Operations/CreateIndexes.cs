@@ -92,27 +92,48 @@ namespace QueryProcessor.Operations
             return false; // La columna no se encontró
         }
 
+        private static readonly object indexFileLock = new object();
+
         private bool IndexExists(string indexName, string tableName)
         {
-            string SystemIndexesFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemIndexes.Indexes"); //Se consigue la ruta hacía el archivo.
-
-            using (var reader = new BinaryReader(File.Open(SystemIndexesFilePath, FileMode.Open)))
+            string SystemIndexesFilePath = Path.Combine(Entities.ConfigPaths.SystemCatalogPath, "SystemIndexes.Indexes");
+        
+            if (!File.Exists(SystemIndexesFilePath))
             {
-                while (reader.BaseStream.Position != reader.BaseStream.Length)
+                return false;
+            }
+        
+            lock (indexFileLock)
+            {
+                using (var reader = new BinaryReader(File.Open(SystemIndexesFilePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
                 {
-                    string currentIndexName = reader.ReadString();
-                    string currentTableName = reader.ReadString();
-
-                    if (currentIndexName == indexName && currentTableName == tableName)
+                    while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        Console.WriteLine($"El índice '{indexName}' ya existe en la tabla '{tableName}'.");
-                        return true;
+                        try
+                        {
+                            string currentIndexName = reader.ReadString();
+                            string currentDatabaseName = reader.ReadString(); // Read but not used
+                            string currentTableName = reader.ReadString();
+                            reader.ReadString(); // Read columnName but not used
+                            reader.ReadString(); // Read indexType but not used
+        
+                            if (currentIndexName == indexName && currentTableName == tableName)
+                            {
+                                Console.WriteLine($"El índice '{indexName}' ya existe en la tabla '{tableName}'.");
+                                return true;
+                            }
+                        }
+                        catch (EndOfStreamException)
+                        {
+                            // Erroes del tipo : "End of file reached"
+                            break;
+                        }
                     }
                 }
             }
-
-            Console.WriteLine($"Anterior mente es la tabla '{tableName}' no se había creado '{indexName}', por lo tanto se permite crear este.");
-            return false; // La columna no se encontró
+        
+            Console.WriteLine($"Anteriormente en la tabla '{tableName}' no se había creado '{indexName}', por lo tanto se permite crear este.");
+            return false;
         }
     }
 }

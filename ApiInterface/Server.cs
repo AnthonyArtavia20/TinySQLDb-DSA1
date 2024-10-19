@@ -5,6 +5,7 @@ using System.Text.Json;
 using ApiInterface.Exceptions;
 using ApiInterface.Processors;
 using ApiInterface.Models;
+using StoreDataManager;
 
 namespace ApiInterface
 {
@@ -18,6 +19,10 @@ namespace ApiInterface
             using Socket listener = new(serverEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             listener.Bind(serverEndPoint);
             listener.Listen(supportedParallelConnections);
+
+            IndexManager.RecreateIndicesOnStartup(); //Cuando el server inicia, de las primeras cosas que se hacen es verificar si hay
+            //indices a recrear.
+
             Console.WriteLine($"Server ready at {serverEndPoint.ToString()}");
 
             while (true)
@@ -30,6 +35,11 @@ namespace ApiInterface
                     var requestObject = ConvertToRequestObject(rawMessage); //Se dessealiza (PARSEA)
                     var response = ProcessRequest(requestObject); //Y luego se procesa y se crea lo solicitado
                     SendResponse(response, handler); //La respuesta serealizada es enviada por el socket por medio de este método.
+                }
+                catch (InvalidRequestException ex)
+                {
+                    Console.WriteLine($"Invalid request: {ex.Message}");
+                    await SendErrorResponse("Invalid request", handler);
                 }
                 catch (Exception ex)
                 {

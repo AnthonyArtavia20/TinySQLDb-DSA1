@@ -15,7 +15,7 @@ namespace StoreDataManager.StoreOperations
             this.currentDatabasePath = currentDatabasePath;
         }
 
-        public OperationStatus Execute(string indexName, string tableName, string columnName, string indexType)
+        public OperationStatus Execute(string indexName, string tableName, string columnName, string indexType, bool RecreacionIndices = false)
         {
             try
             {
@@ -38,8 +38,11 @@ namespace StoreDataManager.StoreOperations
                 // 2. Poblar el índice con los datos de la columna especificada
                 ActualizarIndice(indexStructure, tableName, columnName);
 
-                // 3. Registrar el índice en SystemIndexes
-                ActualizarIndexInSystemCatalog(indexName, tableName, columnName, indexType);
+                if (!RecreacionIndices) //Para evitar que al momento de reconstruir un indice vuelva el indice anteriormente creado.
+                {
+                    // 3. Registrar el índice en SystemIndexes
+                    ActualizarIndexInSystemCatalog(indexName, currentDatabasePath, tableName, columnName, indexType);
+                } 
 
                 Console.WriteLine($"Índice '{indexName}' creado exitosamente para la tabla '{tableName}' y columna '{columnName}'.");
                 return OperationStatus.Success;
@@ -53,9 +56,14 @@ namespace StoreDataManager.StoreOperations
 
         /*Método especializado para poder leer los valores de las tablas e insertarlos en la estructura determianda anteriormente, pasandolos 
         por la interfaz, Objetivo: Leer las columnas y sus datos, identificar la posición de dichos datos e insertarlos en las estructuras.*/
-        private void ActualizarIndice(InterfaceIndexStructure indexStructure, string tableName, string columnName)
+        public void ActualizarIndice(InterfaceIndexStructure indexStructure, string tableName, string columnName)
         {
             string fullPath = Path.Combine(currentDatabasePath, $"{tableName}.Table"); //Ruta a la tabla
+
+            if (!File.Exists(fullPath))
+            {
+                throw new FileNotFoundException($"No se encontró el archivo de la tabla(Desde ActualizarIndice CreateIndexOperation): {fullPath}");
+            }
         
             using (FileStream stream = File.Open(fullPath, FileMode.Open)) //Se abre la tabla para poder leer su estructura y datos.
             using (BinaryReader reader = new BinaryReader(stream))
@@ -145,18 +153,23 @@ namespace StoreDataManager.StoreOperations
 
         //Este método abre el archivo SystemIndexes para poder guardar el registro de que se creó un Indice, con el objetivo de que cuando se
         //inicie el programa, el índice pueda ser creado nuevamente.
-        private void ActualizarIndexInSystemCatalog(string indexName, string tableName, string columnName, string indexType)
+        private static readonly object indexFileLock = new object(); // Definición de la variable de bloqueo
+        private void ActualizarIndexInSystemCatalog(string indexName, string databaseName,string tableName, string columnName, string indexType)
         {
             string SystemIndexesFilePath = Path.Combine(systemCatalogPath, "SystemIndexes.Indexes");
 
-            using (var writer = new BinaryWriter(File.Open(SystemIndexesFilePath, FileMode.Append)))
+            lock (indexFileLock) // Asegurar acceso exclusivo al archivo
             {
-                writer.Write(indexName);
-                writer.Write(tableName);
-                writer.Write(columnName);
-                writer.Write(indexType);
+                using (var writer = new BinaryWriter(File.Open(SystemIndexesFilePath, FileMode.Append, FileAccess.Write, FileShare.None)))
+                {
+                    writer.Write(indexName);
+                    writer.Write(databaseName); //Agregado para que el reconstructor de indices sepa donde buscar la tabla sin tener el SET dado por el usuario.
+                    writer.Write(tableName);
+                    writer.Write(columnName);
+                    writer.Write(indexType);
+                }
+                Console.WriteLine($"Índice '{indexName}' registrado en SystemIndexes.");
             }
-            Console.WriteLine("Se ingresó el índice a SystemIndexes");
         }
     }
 }
