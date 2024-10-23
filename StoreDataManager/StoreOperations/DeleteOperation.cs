@@ -4,40 +4,48 @@ namespace StoreDataManager.StoreOperations
 {
     public class DeleteOperation
     {
-        private readonly string dataPath;
+        private readonly string RutaDeterminadaPorSet;
 
-        public DeleteOperation(string dataPath)
+        public DeleteOperation(string dutaDeterminadaPorSet)
         {
-            this.dataPath = dataPath;
+            this.RutaDeterminadaPorSet = dutaDeterminadaPorSet;
         }
 
         // Función genérica para comparar valores con el operador dado
-        private bool CompareValues<T>(T columnValue, T conditionValue, string operatorValue) where T : IComparable
+        private bool CompareValues(IComparable columnValue, IComparable conditionValue, string operatorValue)
         {
             switch (operatorValue)
             {
-                case "==": return columnValue.CompareTo(conditionValue) == 0;
-                case "!=": return columnValue.CompareTo(conditionValue) != 0;
-                case "<": return columnValue.CompareTo(conditionValue) < 0;
-                case ">": return columnValue.CompareTo(conditionValue) > 0;
-                case "<=": return columnValue.CompareTo(conditionValue) <= 0;
-                case ">=": return columnValue.CompareTo(conditionValue) >= 0;
-                default: throw new InvalidOperationException($"Operador no soportado: {operatorValue}");
+                case "==":
+                    return columnValue.CompareTo(conditionValue) == 0;
+                case "!=":
+                    return columnValue.CompareTo(conditionValue) != 0;
+                case "<":
+                    return columnValue.CompareTo(conditionValue) < 0;
+                case "<=":
+                    return columnValue.CompareTo(conditionValue) <= 0;
+                case ">":
+                    return columnValue.CompareTo(conditionValue) > 0;
+                case ">=":
+                    return columnValue.CompareTo(conditionValue) >= 0;
+                default:
+                    throw new InvalidOperationException("Operador desconocido.");
             }
         }
 
-        public (OperationStatus Status, string Data) Execute(string tableName, string columnName = null, string conditionValue = null, string operatorValue = "==")
+        public (OperationStatus Status, string Data) Execute(string tableName, string columnName, string conditionValue, string operatorValue)
         {
             // Genera la ruta de la tabla donde ejecutar los cambios
-            string fullPath = Path.Combine(dataPath, tableName + ".Table");
+            string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName + ".Table");
 
+            Console.WriteLine("La ruta completa que le llega a DeleteOperation es!!!!!!!: " + fullPath);
             if (!File.Exists(fullPath))
             {
                 return (OperationStatus.Error, $"Error: La tabla '{tableName}' no existe.");
             }
 
             // Crea una tabla temporal para almacenar los datos (si es necesario)
-            string tempFilePath = Path.Combine(dataPath, tableName + "_temp.Table");
+            string tempFilePath = Path.Combine(RutaDeterminadaPorSet, tableName + "_temp.Table");
 
             try
             {

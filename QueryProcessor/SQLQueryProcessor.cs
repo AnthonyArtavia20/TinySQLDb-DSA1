@@ -34,17 +34,66 @@ namespace QueryProcessor
                 var result = new Set().Execute(DataBaseToSet);//Pasamos el nombre de la base de datos a settear como ruta para crear tablas
                 return (result, string.Empty);//Devolvemos éxito.
             }     
-            if (sentence.StartsWith("SELECT"))
+            if (sentence.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
             {
-                const string selectDataBaseKeyWord = "SELECT * FROM";
-                var DataBaseToSelect = sentence.Substring(selectDataBaseKeyWord.Length).Trim(); //Igual, eliminamos la pabra clave.
-
-                if (string.IsNullOrWhiteSpace(DataBaseToSelect))  //En caso de que se ingrese mal.
+                // Separar la parte de SELECT y el resto de la consulta
+                int fromIndex = sentence.IndexOf("FROM", StringComparison.OrdinalIgnoreCase);
+                if (fromIndex == -1)
                 {
-                    throw new InvalidOperationException("Debe ingresar un nombre de una BD para seleccionar");
+                    throw new InvalidOperationException("Consulta SQL no válida. Falta la cláusula 'FROM'.");
                 }
 
-                var result = new Select().Execute(DataBaseToSelect); //Pasamos el nombre de la pase de datos a seleccionar.
+                // Extraer las columnas seleccionadas (lo que está entre SELECT y FROM)
+                string columnsPart = sentence.Substring(6, fromIndex - 6).Trim();
+                
+                // Si se selecciona todo, significa que debemos seleccionar todas las columnas
+                List<string>? columnasSeleccionadas = columnsPart == "*" ? null : columnsPart.Split(',').Select(c => c.Trim()).ToList();
+
+                // Extraer el nombre de la tabla (lo que está después de FROM y antes de WHERE si existe)
+                string afterFrom = sentence.Substring(fromIndex + 4).Trim();
+                string? whereClause = null;
+                string? columnName = null;
+                string? conditionValue = null;
+                string operatorValue = "==";  // Operador por defecto
+
+                // Comprobar si hay una cláusula WHERE
+                if (afterFrom.Contains("WHERE", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Dividir la sentencia para obtener la tabla y la cláusula WHERE
+                    var parts = afterFrom.Split(new[] { "WHERE" }, StringSplitOptions.RemoveEmptyEntries);
+                    afterFrom = parts[0].Trim(); // Nombre de la tabla
+                    whereClause = parts[1].Trim(); // La cláusula WHERE
+
+                    // Procesar la cláusula WHERE (asumimos que el formato es `columna operador valor`)
+                    var whereParts = whereClause.Split(new[] { " ", "=", "<", ">", "!=", "<=", ">=" }, StringSplitOptions.RemoveEmptyEntries);
+
+
+                    if (whereParts.Length >= 2)
+                    {
+                        columnName = whereParts[0].Trim();  // Nombre de la columna
+                        conditionValue = whereParts[1].Trim();  // Valor de la condición
+
+                        // Si hay un operador (e.g., <, >, <=, >=, !=)
+                        if (whereClause.Contains("<=")) operatorValue = "<=";
+                        else if (whereClause.Contains(">=")) operatorValue = ">=";
+                        else if (whereClause.Contains("<")) operatorValue = "<";
+                        else if (whereClause.Contains(">")) operatorValue = ">";
+                        else if (whereClause.Contains("!=")) operatorValue = "!=";
+                        else operatorValue = "=="; // Por defecto "igual"
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Formato inválido en la cláusula WHERE.");
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(afterFrom))
+                {
+                    throw new InvalidOperationException("Debe ingresar un nombre de tabla para seleccionar.");
+                }
+
+                // Ejecutar la operación de selección con las columnas y la cláusula WHERE opcional
+                var result = new Select().Execute(afterFrom,columnasSeleccionadas, columnName, conditionValue, operatorValue);
                 return result;
             }
             if (sentence.StartsWith("CREATE DATABASE"))
@@ -162,38 +211,59 @@ namespace QueryProcessor
                 return (result, string.Empty);
             }
             // Delete implementacion...
-            if (sentence.StartsWith("DELETE"))
+            if (sentence.StartsWith("DELETE FROM ", StringComparison.OrdinalIgnoreCase))
             {
-                const string deleteKeyword = "DELETE FROM";
-                string? whereClause = null;
-                string? columnName = null;
-                string? conditionValue = null;
-
-                var tableToDeleteFrom = sentence.Substring(deleteKeyword.Length).Trim();
+                string tableToDeleteFrom = sentence.Substring("DELETE FROM ".Length).Trim();
+                string columnName = string.Empty;
+                string conditionValue = string.Empty;
+                string operatorValue = string.Empty;
+                string whereClause = string.Empty;
 
                 // Comprobar si hay una cláusula WHERE
                 if (tableToDeleteFrom.Contains("WHERE"))
                 {
-                    
                     var parts = tableToDeleteFrom.Split(new[] { "WHERE" }, StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length < 2)
                     {
                         throw new InvalidOperationException("La consulta DELETE no tiene una cláusula WHERE válida.");
                     }
-                    
-                    tableToDeleteFrom = parts[0].Trim();  // Nombre de la tabla
-                    whereClause = parts[1].Trim();  // La cláusula WHERE
 
-                    // Procesar la cláusula WHERE
-                    var whereParts = whereClause.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (whereParts.Length == 2)
+                    tableToDeleteFrom = parts[0].Trim(); // Nombre de la tabla
+                    whereClause = parts[1].Trim(); // La cláusula WHERE
+
+                    // Identificar el operador en la cláusula WHERE
+                    string[] operators = { "==", "!=", "<=", ">=", "<", ">" };
+                    string selectedOperator = operators.FirstOrDefault(op => whereClause.Contains(op));
+
+                    if (!string.IsNullOrEmpty(selectedOperator))
                     {
-                        columnName = whereParts[0].Trim();  // Nombre de la columna
-                        conditionValue = whereParts[1].Trim();  // Valor de la condición
+                        var whereParts = whereClause.Split(new[] { selectedOperator }, StringSplitOptions.RemoveEmptyEntries);
+                        if (whereParts.Length == 2)
+                        {
+                            columnName = whereParts[0].Trim(); // Nombre de la columna
+                            conditionValue = whereParts[1].Trim(); // Valor de la condición
+
+                            // Verificar si el valor de la condición es numérico o de texto
+                            if (int.TryParse(conditionValue, out _))
+                            {
+                                // Es un valor numérico, no hacer más cambios
+                            }
+                            else
+                            {
+                                // Es un valor de texto, eliminar comillas
+                                conditionValue = conditionValue.Replace("'", "").Trim();
+                            }
+
+                            operatorValue = selectedOperator; // Operador encontrado
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Formato inválido en la cláusula WHERE.");
+                        }
                     }
                     else
                     {
-                        throw new InvalidOperationException("Formato inválido en la cláusula WHERE.");
+                        throw new InvalidOperationException("Operador no válido en la cláusula WHERE.");
                     }
                 }
 
@@ -202,8 +272,8 @@ namespace QueryProcessor
                     throw new InvalidOperationException("Debe ingresar un nombre de una tabla para eliminar.");
                 }
 
-                // Ejecutamos la operación DELETE
-                var result = new Delete().Execute(tableToDeleteFrom, columnName, conditionValue);
+                // Ejecutamos la operación DELETE con los parámetros obtenidos
+                var result = new Delete().Execute(tableToDeleteFrom, columnName, conditionValue, operatorValue);
                 return result;
             }
             else

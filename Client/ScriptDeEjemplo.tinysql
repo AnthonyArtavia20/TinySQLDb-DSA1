@@ -1,4 +1,5 @@
 CREATE DATABASE UNIVERSIDAD;
+
 SET UNIVERSIDAD;
 
 CREATE TABLE Empleados (
@@ -9,23 +10,13 @@ CREATE TABLE Empleados (
     Salario DOUBLE
 );
 
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, Jose, Piedra, 2022-03-31 12:23:43, 2308.00);
-INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (2, Mari, Rodrig, 2021-08-15 09:45:30, 2500.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, Roy, Astua, 2022-03-31 12:23:43, 2308.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (2, Issac, Ramirez, 2021-08-15 09:45:30, 1500.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (3, Anthony, porras, 2021-08-15 09:45:30, 200.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (4, Nacho, leiton, 2021-08-15 09:45:30, 900.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (5, Juaquín, artola, 2021-08-15 09:45:30, 100.00);
 
-CREATE INDEX Empleados_Id ON Empleados(ID) OF TYPE BST;
+SELECT * FROM Empleados;
 
-CREATE DATABASE Ejemplo;
-SET Ejemplo;
-
-CREATE TABLE AMIGOS (
-    ID INTEGER NOT NULL PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL,
-    Apellido VARCHAR(50) NOT NULL,
-    FechaCuandoNosConcocimos DATETIME,
-    Dinero DOUBLE
-);
-
-INSERT INTO AMIGOS (ID, Nombre, Apellido, FechaCuandoNosConcocimos, Dinero) VALUES (1, Jeose, Piegdra, 2022-03-31 12:23:43, 2308.00);
-INSERT INTO AMIGOS (ID, Nombre, Apellido, FechaCuandoNosConcocimos, Dinero) VALUES (2, Mfari, Roddrig, 2021-08-15 09:45:30, 2500.00);
-
-CREATE INDEX Amigos_Id ON AMIGOS(ID) OF TYPE BST;
+DELETE FROM Empleados WHERE ID < 4;
+SELECT * FROM Empleados;

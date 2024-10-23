@@ -4,11 +4,11 @@ namespace StoreDataManager.StoreOperations
 {
     public class UpdateOperation
     {
-        private readonly string dataPath;
+        private readonly string RutaDeterminadaPorSet;
     
-        public UpdateOperation(string dataPath) //Constructor de la clase
+        public UpdateOperation(string RutaDeterminadaPorSet) //Constructor de la clase
         {
-            this.dataPath = dataPath;
+            this.RutaDeterminadaPorSet = RutaDeterminadaPorSet;
         }
 
         private bool CompareValues<T>(T columnValue, T conditionValue, string operatorValue) where T : IComparable 
@@ -27,7 +27,7 @@ namespace StoreDataManager.StoreOperations
 
         public OperationStatus Execute(string tableName, string columnToUpdate, string newValue, string whereColumn, string whereValue, string operatorValue)
         {
-            string tableFilePath = Path.Combine(dataPath, tableName + ".Table");
+            string tableFilePath = Path.Combine(RutaDeterminadaPorSet, tableName + ".Table");
 
             if (!File.Exists(tableFilePath)) //Se comprueba que la tabla sobre la que se quiere actualizar, exista.
             {
@@ -220,5 +220,27 @@ namespace StoreDataManager.StoreOperations
                     break;
             }
         }
+
+        public OperationStatus ExecuteAtPosition(string tableName, string columnToUpdate, string newValue, long position)
+        {
+            string filePath = Path.Combine(RutaDeterminadaPorSet, $"{tableName}.Table");
+        
+            if (!File.Exists(filePath))
+            {
+                return OperationStatus.Error;
+            }
+        
+            using (var stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite))
+            using (var writer = new BinaryWriter(stream))
+            {
+                stream.Seek(position, SeekOrigin.Begin);
+        
+                // Escribir el nuevo valor en la posición especificada
+                writer.Write(newValue); // Ajustar según el tipo de dato
+        
+                return OperationStatus.Success;
+            }
+        }
+
     }
 }
