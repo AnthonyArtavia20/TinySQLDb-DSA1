@@ -16,7 +16,9 @@ namespace StoreDataManager.StoreOperations
                                                             List<string>? columnasSeleccionadas = null, 
                                                             string? columnName = null, 
                                                             string? conditionValue = null, 
-                                                            string? operatorValue = "==")
+                                                            string? operatorValue = "==",
+                                                            string? orderByColumn = null,
+                                                            bool ascending = true)
         {
             string tableName = NombreDeTableASeleccionar + ".Table";
             string fullPath = Path.Combine(RutaDeterminadaPorSet, tableName);
@@ -28,6 +30,7 @@ namespace StoreDataManager.StoreOperations
             }
 
             StringBuilder resultBuilder = new StringBuilder();
+            List<string[]> allRows = new List<string[]>();
 
             try
             {
@@ -77,6 +80,7 @@ namespace StoreDataManager.StoreOperations
                         }
                     }
 
+                    // Agregar encabezados
                     resultBuilder.AppendLine(string.Join(",", columnasASeleccionar.Select(c => c.Name)));
 
                     string dataStartMarker = reader.ReadString();
@@ -84,20 +88,29 @@ namespace StoreDataManager.StoreOperations
                     {
                         throw new InvalidDataException("Marca donde comienza la información, no encontrada");
                     }
-                    int columnIndex = -1;
+
+                    int whereColumnIndex = -1;
                     if (!string.IsNullOrEmpty(columnName))
                     {
-                        columnIndex = columns.FindIndex(c => c.Name == columnName);
-                        if (columnIndex == -1)
+                        whereColumnIndex = columns.FindIndex(c => c.Name == columnName);
+                        if (whereColumnIndex == -1)
                         {
                             return (OperationStatus.Error, $"Error: La columna '{columnName}' no existe en la tabla '{NombreDeTableASeleccionar}'.");
                         }
                     }
-                    bool hasData = false;
+
+                    int orderByColumnIndex = -1;
+                    if (!string.IsNullOrEmpty(orderByColumn))
+                    {
+                        orderByColumnIndex = columns.FindIndex(c => c.Name == orderByColumn);
+                        if (orderByColumnIndex == -1)
+                        {
+                            return (OperationStatus.Error, $"Error: La columna de ordenamiento '{orderByColumn}' no existe en la tabla.");
+                        }
+                    }
 
                     while (stream.Position < stream.Length)
                     {
-                        StringBuilder ConstructorFila = new StringBuilder();
                         string[] rowData = new string[columnCount];
 
                         for (int i = 0; i < columnCount; i++)
@@ -132,20 +145,32 @@ namespace StoreDataManager.StoreOperations
                         bool conditionMet = true;
                         if (!string.IsNullOrEmpty(columnName) && !string.IsNullOrEmpty(conditionValue))
                         {
-                            conditionMet = EvaluateCondition(columns[columnIndex].DataType, rowData[columnIndex], conditionValue, operatorValue.ToLower());
+                            conditionMet = EvaluateCondition(columns[whereColumnIndex].DataType, rowData[whereColumnIndex], conditionValue, operatorValue.ToLower());
                         }
 
                         if (conditionMet)
                         {
-                            resultBuilder.AppendLine(string.Join(",", rowData));
-                            hasData = true;
+                            allRows.Add(rowData);
                         }
                     }
 
-                    if (!hasData)
+                    if (allRows.Count == 0)
                     {
                         return (OperationStatus.Success, string.IsNullOrEmpty(columnName) ? "La tabla está vacía." : "No se encontraron datos que coincidan con la condición.");
                     }
+
+                    // Aplicar ordenamiento si se especificó ORDER BY
+                    if (orderByColumnIndex != -1)
+                    {
+                        allRows = QuickSort(allRows, orderByColumnIndex, ascending);
+                    }
+
+                    // Construir el resultado final
+                    foreach (var row in allRows)
+                    {
+                        resultBuilder.AppendLine(string.Join(",", row));
+                    }
+
                     return (OperationStatus.Success, resultBuilder.ToString());
                 }
             }
@@ -215,6 +240,55 @@ namespace StoreDataManager.StoreOperations
                     reader.ReadChars(length);
                     break;
             }
+        }
+
+        private List<string[]> QuickSort(List<string[]> data, int columnIndex, bool ascending)
+        {
+            if (data.Count <= 1) return data;
+        
+            var pivot = data[data.Count / 2];
+            var left = new List<string[]>();
+            var right = new List<string[]>();
+        
+            for (int i = 0; i < data.Count; i++)
+            {
+                if (i == data.Count / 2) continue;
+        
+                int comparison = CompareValues(data[i][columnIndex], pivot[columnIndex]);
+                
+                if ((ascending && comparison < 0) || (!ascending && comparison > 0))
+                {
+                    left.Add(data[i]);
+                }
+                else
+                {
+                    right.Add(data[i]);
+                }
+            }
+        
+            var sorted = QuickSort(left, columnIndex, ascending);
+            sorted.Add(pivot);
+            sorted.AddRange(QuickSort(right, columnIndex, ascending));
+        
+            return sorted;
+        }
+
+        private int CompareValues(string value1, string value2)
+        {
+            // Primero intentamos comparar como números
+            if (double.TryParse(value1, out double num1) && double.TryParse(value2, out double num2))
+            {
+                return num1.CompareTo(num2);
+            }
+            
+            // Si no son números, intentamos comparar como fechas
+            if (DateTime.TryParse(value1, out DateTime date1) && DateTime.TryParse(value2, out DateTime date2))
+            {
+                return date1.CompareTo(date2);
+            }
+            
+            // Si no son ni números ni fechas, comparamos como strings
+            return string.Compare(value1, value2, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

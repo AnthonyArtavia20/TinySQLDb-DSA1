@@ -55,7 +55,7 @@ namespace QueryProcessor.Operations
                     throw new InvalidOperationException($"La columna '{columnas[i]}' no existe en la tabla '{tableName}'");
                 }
         
-                valores[i] = ParseAndValidateValue(columna, valores[i]).ToString();
+                valores[i] = ParseAndValidateValue(columna, valores[i]).ToString()!;
             }
         
             // Llama a Store para insertar los datos

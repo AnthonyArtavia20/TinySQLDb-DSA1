@@ -93,7 +93,7 @@ namespace QueryProcessor
                 }
 
                 // Ejecutar la operación de selección con las columnas y la cláusula WHERE opcional
-                var result = new Select().Execute(afterFrom,columnasSeleccionadas, columnName, conditionValue, operatorValue);
+                var result = new Select().Execute(afterFrom,columnasSeleccionadas!, columnName!, conditionValue!, operatorValue);
                 return result;
             }
             if (sentence.StartsWith("CREATE DATABASE"))
@@ -146,68 +146,77 @@ namespace QueryProcessor
                 var result = new CreateIndexes().Execute(indexName, tableName, columnNameKeyValue, indexType);
                 return (result, string.Empty); //Se devuelve el resultado de la operación.
             }
-            if (sentence.StartsWith("UPDATE"))
+            if (sentence.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase))
             {
-                // Dividir la sentencia en las partes relevantes
-                var parts = sentence.Split(new[] { "UPDATE ", " SET ", " WHERE " }, StringSplitOptions.RemoveEmptyEntries);
+                // Procesamiento similar al DELETE, pero adaptado para UPDATE
+                string tableToUpdate = ""; 
+                string columnToUpdate = ""; 
+                string newValue = ""; 
+                string whereColumn = ""; 
+                string whereValue = ""; 
+                string operatorValue = "";
 
-                // Asegurarse de que SET esté presente
-                if (parts.Length < 2 || parts.Length > 3)
+                // Extraer la cláusula SET para UPDATE
+                int setIndex = sentence.IndexOf("SET", StringComparison.OrdinalIgnoreCase);
+                int whereIndex = sentence.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase);
+                if (setIndex != -1 && whereIndex != -1)
                 {
-                    throw new Exception("Error al parsear la sentencia UPDATE. La sintaxis es incorrecta.");
-                }
+                    tableToUpdate = sentence.Substring("UPDATE".Length, setIndex - "UPDATE".Length).Trim();
+                    string setClause = sentence.Substring(setIndex + "SET".Length, whereIndex - setIndex - "SET".Length).Trim();
+                    string whereClause = sentence.Substring(whereIndex + "WHERE".Length).Trim();
 
-                // Extraer el nombre de la tabla
-                string tableName = parts[0].Trim();
-
-                // Dividir la cláusula SET en columna y valor
-                var setClause = parts[1].Split(new[] { " = " }, StringSplitOptions.RemoveEmptyEntries);
-                if (setClause.Length != 2)
-                {
-                    throw new Exception("Error al parsear la cláusula SET.");
-                }
-                string columnToUpdate = setClause[0].Trim();
-                string newValue = setClause[1].Trim().Trim('"');  // Eliminar comillas alrededor del valor
-
-                // Verificar si hay cláusula WHERE
-                string? whereColumn = null;
-                string? whereValue = null;
-                string? operatorValue = null;
-
-                if (parts.Length == 3)  // Hay WHERE, si hay 3 "operandos" quiere decir que el WHERE va incluido.
-                {
-                    // Detectar el operador en la cláusula WHERE
-                    string[] operators = new[] { "==", "!=", ">", "<", ">=", "<=" };
-                    operatorValue = operators.FirstOrDefault(op => parts[2].Contains(op));
-
-                    if (operatorValue == null)
+                    // Procesar la cláusula SET
+                    var setParts = setClause.Split('=');
+                    if (setParts.Length == 2)
                     {
-                        throw new Exception("Operador no soportado en la cláusula WHERE.");
+                        columnToUpdate = setParts[0].Trim();
+                        newValue = setParts[1].Replace("'", "").Trim();
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Formato inválido en la cláusula SET.");
                     }
 
-                    // Dividir la cláusula WHERE usando el operador detectado
-                    var whereClause = parts[2].Split(new[] { operatorValue }, StringSplitOptions.RemoveEmptyEntries);
-                    if (whereClause.Length != 2)
+                    // Procesar la cláusula WHERE
+                    string[] operators = { ">=", "<=", ">", "<", "==", "!=" };
+                    string selectedOperator = operators.FirstOrDefault(op => whereClause.Contains(op))!;
+
+                    if (!string.IsNullOrEmpty(selectedOperator))
                     {
-                        throw new Exception("Error al parsear la cláusula WHERE.");
+                        var whereParts = whereClause.Split(new[] { selectedOperator }, StringSplitOptions.RemoveEmptyEntries);
+                        if (whereParts.Length == 2)
+                        {
+                            whereColumn = whereParts[0].Trim();
+                            whereValue = whereParts[1].Trim();
+
+                            if (int.TryParse(whereValue, out _))
+                            {
+                                // Es un valor numérico
+                            }
+                            else
+                            {
+                                whereValue = whereValue.Replace("'", "").Trim();
+                            }
+
+                            operatorValue = selectedOperator;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Formato inválido en la cláusula WHERE.");
+                        }
                     }
-
-                    whereColumn = whereClause[0].Trim();
-                    whereValue = whereClause[1].Trim();
+                    else
+                    {
+                        throw new InvalidOperationException("Operador no válido en la cláusula WHERE.");
+                    }
                 }
 
-                Console.WriteLine($"Tabla: {tableName}, Columna a actualizar: {columnToUpdate}, Nuevo valor: {newValue}");
-                if (whereColumn != null)
+                if (string.IsNullOrWhiteSpace(tableToUpdate))
                 {
-                    Console.WriteLine($"Columna WHERE: {whereColumn}, Valor WHERE: {whereValue}, Operador: {operatorValue}");
-                }
-                else
-                {
-                    Console.WriteLine("Actualizando toda la columna, no se especificó WHERE.");
+                    throw new InvalidOperationException("Debe ingresar un nombre de una tabla para actualizar.");
                 }
 
-                // Llamar a la operación Update con el operador incluido
-                var result = new Update().Execute(tableName, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
+                var result = new Update().Execute(tableToUpdate, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
                 return (result, string.Empty);
             }
             // Delete implementacion...
@@ -233,7 +242,7 @@ namespace QueryProcessor
 
                     // Identificar el operador en la cláusula WHERE
                     string[] operators = { "==", "!=", "<=", ">=", "<", ">" };
-                    string selectedOperator = operators.FirstOrDefault(op => whereClause.Contains(op));
+                    string selectedOperator = operators.FirstOrDefault(op => whereClause.Contains(op))!;
 
                     if (!string.IsNullOrEmpty(selectedOperator))
                     {

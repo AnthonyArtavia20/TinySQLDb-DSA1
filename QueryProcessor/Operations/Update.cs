@@ -11,10 +11,11 @@ namespace QueryProcessor.Operations
             // Verificar que la tabla exista
             if (!CreateTableOperation.TableExists(tableName))
             {
-                Console.WriteLine($"Error al verificar la tabla mientras se crea el índice: La tabla '{tableName}' no existe.");
+                Console.WriteLine($"Error: La tabla '{tableName}' no existe.");
                 return OperationStatus.Error;
             }
 
+            // Llamar a la operación de actualización con los parámetros adecuados
             return Store.GetInstance().Update(tableName, columnToUpdate, newValue, whereColumn, whereValue, operatorValue);
         }
     }
