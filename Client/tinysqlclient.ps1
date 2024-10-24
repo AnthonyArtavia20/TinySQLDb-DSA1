@@ -92,7 +92,7 @@ function Start-MyQuery { #Función principal, donde se leen las consultas y llam
     #para poder enviar, recibir, y mostrar los resultas de las operaciones.
 
     # Obtener el archivo de consulta en el mismo directorio que el script
-    $queryFilePath = Join-Path $PSScriptRoot "ScriptDeEjemplo.tinysql"
+    $queryFilePath = Join-Path $PSScriptRoot "ConsultasYOperaciones.tinysql"
     
     Write-Host "Iniciando la ejecución del script tinysqldb.ps1"
     Write-Host "Leyendo el archivo de consulta en: $queryFilePath"
