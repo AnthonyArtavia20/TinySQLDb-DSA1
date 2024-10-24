@@ -1,0 +1,22 @@
+CREATE DATABASE UNIVERSIDAD;
+
+SET UNIVERSIDAD;
+
+CREATE TABLE Empleados (
+    ID INTEGER NOT NULL PRIMARY KEY,
+    Nombre VARCHAR(50) NOT NULL,
+    Apellido VARCHAR(50) NOT NULL,
+    FechaContratacion DATETIME,
+    Salario DOUBLE
+);
+
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (1, Roy, Astua, 2022-03-31 12:23:43, 2308.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (2, Issac, Ramirez, 2021-08-15 09:45:30, 1500.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (3, Anthony, porras, 2021-08-15 09:45:30, 200.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (4, Nacho, leiton, 2021-08-15 09:45:30, 900.00);
+INSERT INTO Empleados (ID, Nombre, Apellido, FechaContratacion, Salario) VALUES (5, Juaquín, artola, 2021-08-15 09:45:30, 100.00);
+
+SELECT * FROM Empleados;
+
+DELETE FROM Empleados WHERE ID < 4;
+SELECT * FROM Empleados;
